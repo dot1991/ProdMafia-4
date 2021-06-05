@@ -1,6 +1,8 @@
 package com.company.assembleegameclient.objects {
-   import kabam.rotmg.text.view.stringBuilder.PatternBuilder;
-   import kabam.rotmg.text.view.stringBuilder.StringBuilder;
+import kabam.rotmg.text.view.stringBuilder.LineBuilder;
+import kabam.rotmg.text.view.stringBuilder.PatternBuilder;
+import kabam.rotmg.text.view.stringBuilder.StaticStringBuilder;
+import kabam.rotmg.text.view.stringBuilder.StringBuilder;
    
    public class PortalNameParser {
       
@@ -22,8 +24,11 @@ package com.company.assembleegameclient.objects {
          return this.makePatternFromParts(_loc2_);
       }
       
-      public function makeBuilder(param1:String) : StringBuilder {
-         return new PatternBuilder().setPattern(this.parse(param1));
+      public function makeBuilder(name:String) : StringBuilder {
+         var tokens:Object = name.charAt(0) == '{' ? LineBuilder.fromJSON(name).tokens : null;
+         return new StaticStringBuilder(tokens ?
+                 LineBuilder.getLocalizedStringFromKey(tokens as String) :
+                 name);
       }
       
       private function wrapNameWithBracesIfRequired(param1:String) : String {

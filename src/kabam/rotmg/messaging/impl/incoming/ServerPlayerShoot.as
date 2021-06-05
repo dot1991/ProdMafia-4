@@ -11,8 +11,8 @@ package kabam.rotmg.messaging.impl.incoming {
       public var damage_:int;
       public var creepObjId:int;
       public var isMultiShotCreep:Boolean;
-      public var shotCount:int;
-      public var angleIncRad:int;
+      public var shotCount:int = 1;
+      public var angleIncRad:Number;
       
       public function ServerPlayerShoot(param1:uint, param2:Function) {
          this.startingPos_ = new WorldPosData();
@@ -30,7 +30,7 @@ package kabam.rotmg.messaging.impl.incoming {
          this.isMultiShotCreep = input.readBoolean();
          if (input.bytesAvailable > 0) {
             this.shotCount = input.readByte();
-            this.angleIncRad = input.readInt();
+            this.angleIncRad = input.readFloat();
          }
       }
       

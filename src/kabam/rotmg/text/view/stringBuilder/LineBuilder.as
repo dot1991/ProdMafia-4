@@ -79,8 +79,8 @@ package kabam.rotmg.text.view.stringBuilder {
       
       public function toJson() : String {
          return JSON.stringify({
-            "key":this.key,
-            "tokens":this.tokens
+            "k":this.key,
+            "t":this.tokens
          });
       }
       

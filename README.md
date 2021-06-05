@@ -1,4 +1,4 @@
-# ProdMafia - An AS3-based modded client of the game Realm of the Mad God
+# ProdMafia
 
 **Setting up with IntelliJ IDEA:**
 1. Install IntelliJ IDEA with the Flash/Flex plugin

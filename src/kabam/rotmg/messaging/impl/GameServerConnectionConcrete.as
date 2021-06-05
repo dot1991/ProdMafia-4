@@ -259,7 +259,6 @@ public class GameServerConnectionConcrete extends GameServerConnection {
 
    public static var lastConnectionFailureMessage:String = "";
 
-
    private var serverFull_:Boolean = false;
 
    public var petUpdater:PetUpdater;
@@ -1000,10 +999,12 @@ public class GameServerConnectionConcrete extends GameServerConnection {
       serverConnection.sendMessage(_loc4_);
    }
 
-   public function shootAck(param1:int) : void {
-      var _loc2_:ShootAck = this.messages.require(100) as ShootAck;
-      _loc2_.time_ = param1;
-      serverConnection.sendMessage(_loc2_);
+   public function shootAck(time:int) : void {
+      // scuffed todo
+      var counter:ShootAckCounter = this.messages.require(SHOOTACK_COUNTER) as ShootAckCounter;
+      counter.time = time;
+      counter.amount = 1;
+      this.serverConnection.sendMessage(counter);
    }
 
    public function swapEquip(param1:GameObject, param2:int, param3:XML) : Boolean {
@@ -1385,32 +1386,39 @@ public class GameServerConnectionConcrete extends GameServerConnection {
       }
    }
 
-   private function onServerPlayerShoot(param1:ServerPlayerShoot) : void {
-      var _loc5_:* = param1.ownerId_ == this.playerId_;
-      var _loc2_:GameObject = gs_.map.goDict_[param1.ownerId_];
-      if(_loc2_ == null || _loc2_.dead_) {
-         if(_loc5_) {
+   private function onServerPlayerShoot(p:ServerPlayerShoot) : void {
+      var self:Boolean = p.ownerId_ == this.playerId_;
+      var go:GameObject = gs_.map.goDict_[p.ownerId_];
+
+      if (go == null || go.dead_) {
+         if (self)
             this.shootAck(-1);
-         }
+
          return;
       }
-      if(_loc2_.objectId_ != this.playerId_) {
+
+      if (go.objectId_ != this.playerId_)
          return;
-      }
-      var _loc4_:Projectile = FreeList.newObject(Projectile) as Projectile;
-      var _loc3_:Player = _loc2_ as Player;
-      if(_loc3_) {
-         _loc4_.reset(param1.containerType_,0,param1.ownerId_,param1.bulletId_,param1.angle_,gs_.lastUpdate_,_loc3_.projectileIdSetOverrideNew,_loc3_.projectileIdSetOverrideOld);
-      } else {
-         _loc4_.reset(param1.containerType_,0,param1.ownerId_,param1.bulletId_,param1.angle_,gs_.lastUpdate_);
-      }
-      _loc4_.setDamage(param1.damage_);
-      gs_.map.addObj(_loc4_,param1.startingPos_.x_,param1.startingPos_.y_);
-      if(_loc5_) {
+
+      if (self)
          this.shootAck(gs_.lastUpdate_);
-         if(!_loc4_.update(_loc4_.startTime_,0)) {
-            gs_.map.removeObj(_loc4_.objectId_);
-         }
+
+      var player:Player = go as Player;
+
+      for (var i:int = 0; i < p.shotCount; i++) {
+         var proj:Projectile = FreeList.newObject(Projectile) as Projectile;
+
+         if (player)
+            proj.reset(p.containerType_, 0, p.ownerId_, p.bulletId_ + i, p.angle_ + p.angleIncRad * i, gs_.lastUpdate_,
+                    player.projectileIdSetOverrideNew, player.projectileIdSetOverrideOld);
+         else
+            proj.reset(p.containerType_, 0, p.ownerId_, p.bulletId_ + i, p.angle_ + p.angleIncRad * i, gs_.lastUpdate_);
+
+         proj.setDamage(p.damage_);
+         gs_.map.addObj(proj, p.startingPos_.x_, p.startingPos_.y_);
+
+         if (self && !proj.update(proj.startTime_, 0))
+            gs_.map.removeObj(proj.objectId_);
       }
    }
 
@@ -1607,51 +1615,53 @@ public class GameServerConnectionConcrete extends GameServerConnection {
       gs_.map.calcVulnerables();
    }
 
-   private function onNotification(param1:Notification) : void {
+   private function onNotification(notif:Notification) : void {
       var _loc2_:LineBuilder = null;
-      if (param1.effect == Notification.OBJECT_STATUS_TEXT) {
-         var _loc3_:GameObject = this.gs_.map.goDict_[param1.objectId_];
+      if (notif.effect == Notification.OBJECT_STATUS_TEXT) {
+         var _loc3_:GameObject = this.gs_.map.goDict_[notif.objectId_];
          if(_loc3_) {
-            _loc2_ = LineBuilder.fromJSON(param1.message);
+            _loc2_ = LineBuilder.fromJSON(notif.message);
             if(Parameters.data.ignoreStatusText && _loc2_.key == "s.no_effect") {
                return;
             }
             var _loc4_:* = _loc2_.key;
             switch(_loc4_) {
                case "s.plus_symbol":
-                  param1.message = "+" + _loc2_.tokens.amount;
+                  notif.message = "+" + _loc2_.tokens.amount;
                   break;
                case "s.no_effect":
-                  param1.message = "No Effect";
+                  notif.message = "No Effect";
                   break;
                case "s.class_quest_complete":
-                  param1.message = "Class Quest Completed!";
+                  notif.message = "Class Quest Completed!";
                   break;
                case "s.quest_complete":
-                  param1.message = "Quest Complete!";
+                  notif.message = "Quest Complete!";
                   break;
                case "blank":
-                  param1.message = _loc2_.tokens.data;
+                  notif.message = _loc2_.tokens.data;
             }
             if(_loc3_.objectId_ == this.player.objectId_) {
-               if(param1.message == "Quest Complete!") {
+               if(notif.message == "Quest Complete!") {
                   this.gs_.map.quest_.completed();
-               } else if(_loc2_.key == "s.plus_symbol" && param1.color == 65280) {
+               } else if(_loc2_.key == "s.plus_symbol" && notif.color == 65280) {
                   this.player.addHealth(_loc2_.tokens.amount);
                }
-               this.makeNotification(param1.message, _loc3_, param1.color,1000);
+               this.makeNotification(notif.message, _loc3_, notif.color,1000);
             } else if(_loc3_.props_.isEnemy_ || !Parameters.data.noAllyNotifications) {
-               this.makeNotification(param1.message,_loc3_, param1.color,1000);
+               this.makeNotification(notif.message,_loc3_, notif.color,1000);
             }
          }
       } else {
-         if (param1.message != "giftChestOccupied")
-            this.addTextLine.dispatch(ChatMessage.make("",
-                 param1.message.indexOf("}") != -1 ?
-                         LineBuilder.fromJSON(param1.message) ?
-                                 LineBuilder.fromJSON(param1.message).getString() :
-                                 "" :
-                         param1.message))
+         if (notif.effect != Notification.UI_NOTIFICATION &&
+                 notif.effect != Notification.QUEUE) {
+            var msg:String = "";
+            if (notif.message.charAt(0) == "{")
+               msg = LineBuilder.fromJSON(notif.message) ? LineBuilder.fromJSON(notif.message).getString() : "";
+            else msg = notif.message;
+            if (msg != "")
+               this.addTextLine.dispatch(ChatMessage.make("", msg));
+         }
       }
    }
 
@@ -3015,11 +3025,12 @@ public class GameServerConnectionConcrete extends GameServerConnection {
    }
 
    private function handleDefaultFailure(param1:Failure) : void {
-      var _loc2_:String = LineBuilder.getLocalizedStringFromJSON(param1.errorDescription_);
-      if(_loc2_ == "") {
-         _loc2_ = param1.errorDescription_;
-      }
-      this.addTextLine.dispatch(ChatMessage.make("*Error*",_loc2_));
+      var error:String = LineBuilder.getLocalizedStringFromJSON(param1.errorDescription_);
+      if (error == "")
+         error = param1.errorDescription_;
+
+      if (error != "")
+         this.addTextLine.dispatch(ChatMessage.make("*Error*",error));
    }
 
    private function conRecon(param1:ReconnectEvent) : void {

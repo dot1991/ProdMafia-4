@@ -25,6 +25,10 @@ public class CheckForLoginTask extends BaseTask {
    public var account:Account;
    [Inject]
    public var loginSuccess:LoginSuccessSignal;
+   [Inject]
+   public var webLoginDialog:WebLoginDialog;
+   [Inject]
+   public var openDialog:OpenDialogSignal;
 
    public function CheckForLoginTask() {
       super();
@@ -32,15 +36,14 @@ public class CheckForLoginTask extends BaseTask {
 
    override protected function startTask() : void {
       var account:Account = StaticInjectorContext.getInjector().getInstance(Account);
-      if (account.getAccessToken() != null && account.getAccessToken() != "") {
+      if (account.getAccessToken() != null &&
+              account.getAccessToken() != "" &&
+              account.getAccessToken() != undefined) {
          completeTask(true, "");
          return;
       }
 
-      var dialog:WebLoginDialog = StaticInjectorContext.getInjector().getInstance(WebLoginDialog);
-      var openDialog:OpenDialogSignal = StaticInjectorContext.getInjector().getInstance(OpenDialogSignal);
-      openDialog.dispatch(dialog);
-
+      openDialog.dispatch(webLoginDialog);
       this.loginSuccess.add(this.onComplete);
    }
 

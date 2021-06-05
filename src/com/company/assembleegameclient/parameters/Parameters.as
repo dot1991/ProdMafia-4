@@ -797,7 +797,7 @@ public class Parameters {
         setDefault("depositKey", KeyCodes.NUMPAD_6);
         setDefault("customName", "");
         setDefault("tutorialMode", false);
-        setDefault("lifeMul", 1);
+        setDefault("lifeMul", 1.0);
         setDefault("speedMul", 1.0);
         generateClientToken();
     }
