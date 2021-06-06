@@ -6,10 +6,10 @@ import flash.net.URLRequest;
 
 public class ImageLoader {
 
-
     public function ImageLoader() {
         super();
     }
+
     private var _callBack:Function;
 
     private var _loader:Loader;
@@ -29,7 +29,7 @@ public class ImageLoader {
         try {
             this._loader.load(new URLRequest(_loc4_));
 
-        } catch (error:SecurityError) {
+        } catch ( error:SecurityError ) {
 
         }
     }

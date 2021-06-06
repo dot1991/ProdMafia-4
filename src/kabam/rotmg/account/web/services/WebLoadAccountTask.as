@@ -11,10 +11,10 @@ import kabam.rotmg.appengine.api.AppEngineClient;
 
 public class WebLoadAccountTask extends BaseTask implements LoadAccountTask {
 
-
     public function WebLoadAccountTask() {
         super();
     }
+
     [Inject]
     public var account:Account;
     [Inject]
@@ -43,7 +43,7 @@ public class WebLoadAccountTask extends BaseTask implements LoadAccountTask {
             loginSO.data["AccessTokenExpiry"] && (this.data.accessTokenExpiry = loginSO.data["AccessTokenExpiry"]);
             if (loginSO.data.hasOwnProperty("Name"))
                 this.data.name = loginSO.data["Name"];
-        } catch (error:Error) {
+        } catch ( error:Error ) {
             trace(error.message);
             data.username = null;
             data.password = null;

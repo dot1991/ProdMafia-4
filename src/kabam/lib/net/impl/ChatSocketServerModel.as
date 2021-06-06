@@ -1,7 +1,6 @@
 package kabam.lib.net.impl {
 public class ChatSocketServerModel {
 
-
     private const CONNECTION_DELAY:int = 1000;
 
     public function ChatSocketServerModel() {

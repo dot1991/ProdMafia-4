@@ -18,7 +18,6 @@ public class ChatSocketServer {
 
     public static const MESSAGE_LENGTH_SIZE_IN_BYTES:int = 4;
 
-
     public const chatConnected:Signal = new Signal();
 
     public const chatClosed:Signal = new Signal();
@@ -34,6 +33,7 @@ public class ChatSocketServer {
         tail = unsentPlaceholder;
         super();
     }
+
     [Inject]
     public var messages:MessageProvider;
     [Inject]
@@ -208,7 +208,7 @@ public class ChatSocketServer {
                 if (this.chatSocket.bytesAvailable >= 4) {
                     try {
                         this.messageLen = this.chatSocket.readInt();
-                    } catch (e:Error) {
+                    } catch ( e:Error ) {
                         var _local6:String = parseString("Socket-Server Data Error: {0}: {1}", [e.name, e.message]);
                         chatError.dispatch(null);
                         messageLen = -1;
@@ -237,7 +237,7 @@ public class ChatSocketServer {
                 try {
                     _local4.parseFromInput(_local2);
                     continue;
-                } catch (error:Error) {
+                } catch ( error:Error ) {
                     logErrorAndClose("Socket-Server Protocol Error: {0}", [error.toString()]);
                     return;
                 }

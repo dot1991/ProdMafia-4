@@ -9,10 +9,10 @@ import robotlegs.bender.framework.api.ILogger;
 
 public class GetLegacySeasonsTask extends BaseTask {
 
-
     public function GetLegacySeasonsTask() {
         super();
     }
+
     [Inject]
     public var client:AppEngineClient;
     [Inject]
@@ -47,7 +47,7 @@ public class GetLegacySeasonsTask extends BaseTask {
         var _local2:* = _arg_1;
         try {
             _local3 = new XML(_local2);
-        } catch (e:Error) {
+        } catch ( e:Error ) {
             logger.error("Error parsing seasonal data: " + _local2);
             completeTask(true);
             return;

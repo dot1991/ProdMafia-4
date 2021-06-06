@@ -27,6 +27,7 @@ public class PetsModel {
         ownedSkinsIDs = new Vector.<int>();
         super();
     }
+
     [Inject]
     public var notifyActivePetUpdated:NotifyActivePetUpdated;
     [Inject]

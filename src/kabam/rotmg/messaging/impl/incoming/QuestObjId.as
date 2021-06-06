@@ -4,15 +4,14 @@ import flash.utils.IDataInput;
 import kabam.rotmg.messaging.impl.data.CompressedInt;
 
 public class QuestObjId extends IncomingMessage {
-    public var objectId_:int;
-    public var idk:Vector.<int>;
-
     public function QuestObjId(id:uint, callback:Function) {
         this.idk = new Vector.<int>();
         super(id, callback);
     }
+    public var objectId_:int;
+    public var idk:Vector.<int>;
 
-    override public function parseFromInput(data:IDataInput) : void {
+    override public function parseFromInput(data:IDataInput):void {
         this.objectId_ = data.readInt();
         var len:int = CompressedInt.read(data);
         for (var i:int = 0; i < len; i++) {
@@ -21,8 +20,8 @@ public class QuestObjId extends IncomingMessage {
         }
     }
 
-    override public function toString() : String {
-        return formatToString("QUESTOBJID","objectId_", "idk");
+    override public function toString():String {
+        return formatToString("QUESTOBJID", "objectId_", "idk");
     }
 }
 }

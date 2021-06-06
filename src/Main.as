@@ -62,85 +62,84 @@ import robotlegs.bender.framework.api.LogLevel;
 
 [SWF(frameRate="60", backgroundColor="#000000", width="800", height="600")]
 public class Main extends Sprite {
-   public static var STAGE:Stage;
-   public static var sWidth:Number = 800;
-   public static var sHeight:Number = 600;
-   public static var focus:Boolean = true;
+    public static var STAGE:Stage;
+    public static var sWidth:Number = 800;
+    public static var sHeight:Number = 600;
+    public static var focus:Boolean = true;
 
-   protected var context:IContext;
+    public function Main() {
+        super();
 
-   public function Main() {
-      super();
+        if (stage) {
+            stage.addEventListener(Event.RESIZE, this.onStageResize, false, 0, true);
+            this.setup();
+        } else addEventListener(Event.ADDED_TO_STAGE, this.onAddedToStage);
+    }
+    protected var context:IContext;
 
-      if (stage) {
-         stage.addEventListener(Event.RESIZE, this.onStageResize, false, 0, true);
-         this.setup();
-      } else addEventListener(Event.ADDED_TO_STAGE, this.onAddedToStage);
-   }
+    private function setup():void {
+        stage.addEventListener(KeyboardEvent.KEY_DOWN, onKeyDown);
+        stage.scaleMode = StageScaleMode.EXACT_FIT;
+        this.createContext();
+        new AssetLoader().load();
+        this.context.injector.getInstance(StartupSignal).dispatch();
+        STAGE = stage;
+        STAGE.frameRate = Parameters.data.customFPS;
+        addFocusListeners();
+        Parameters.root = root;
+        if (Parameters.data.fullscreen)
+            stage.displayState = StageDisplayState.FULL_SCREEN_INTERACTIVE;
+    }
 
-   private function setup() : void {
-      stage.addEventListener(KeyboardEvent.KEY_DOWN, onKeyDown);
-      stage.scaleMode = StageScaleMode.EXACT_FIT;
-      this.createContext();
-      new AssetLoader().load();
-      this.context.injector.getInstance(StartupSignal).dispatch();
-      STAGE = stage;
-      STAGE.frameRate = Parameters.data.customFPS;
-      addFocusListeners();
-      Parameters.root = root;
-      if (Parameters.data.fullscreen)
-         stage.displayState = StageDisplayState.FULL_SCREEN_INTERACTIVE;
-   }
+    private function addFocusListeners():void {
+        stage.addEventListener(Event.ACTIVATE, onActivate, false, 0, true);
+        stage.addEventListener(Event.DEACTIVATE, onDeactivate, false, 0, true);
+    }
 
-   private function addFocusListeners() : void {
-      stage.addEventListener(Event.ACTIVATE, onActivate,false,0,true);
-      stage.addEventListener(Event.DEACTIVATE, onDeactivate,false,0,true);
-   }
+    private function createContext():void {
+        this.context = new StaticInjectorContext();
+        this.context.injector.map(LoaderInfo).toValue(root.stage.root.loaderInfo);
+        var stageProxy:StageProxy = new StageProxy(this);
+        this.context.injector.map(StageProxy).toValue(stageProxy);
+        this.context.extend(MVCSBundle, SignalCommandMapExtension)
+                .configure(BuildConfig, StartupConfig, NetConfig, AssetsConfig,
+                        DialogsConfig, ApplicationConfig, LanguageConfig, TextConfig,
+                        AppEngineConfig, AccountConfig, ErrorConfig, CoreConfig,
+                        ApplicationSpecificConfig, DeathConfig, CharactersConfig, ServersConfig,
+                        GameConfig, UIConfig, MiniMapConfig, LegendsConfig, NewsConfig, FameConfig,
+                        TooltipsConfig, PromotionsConfig, ProTipConfig, ClassesConfig, PackageConfig,
+                        PetsConfig, DailyLoginConfig, Stage3DConfig, ArenaConfig, ExternalConfig,
+                        MysteryBoxConfig, DailyQuestsConfig, SocialConfig, NexusShopConfig, ToSConfig,
+                        SupportCampaignConfig, SeasonalEventConfig, this);
+        this.context.logLevel = LogLevel.DEBUG;
+    }
 
-   private function createContext() : void {
-      this.context = new StaticInjectorContext();
-      this.context.injector.map(LoaderInfo).toValue(root.stage.root.loaderInfo);
-      var stageProxy:StageProxy = new StageProxy(this);
-      this.context.injector.map(StageProxy).toValue(stageProxy);
-      this.context.extend(MVCSBundle, SignalCommandMapExtension)
-              .configure(BuildConfig, StartupConfig, NetConfig, AssetsConfig,
-                      DialogsConfig, ApplicationConfig, LanguageConfig, TextConfig,
-                      AppEngineConfig, AccountConfig, ErrorConfig, CoreConfig,
-                      ApplicationSpecificConfig, DeathConfig, CharactersConfig, ServersConfig,
-                      GameConfig, UIConfig, MiniMapConfig, LegendsConfig, NewsConfig, FameConfig,
-                      TooltipsConfig, PromotionsConfig, ProTipConfig, ClassesConfig, PackageConfig,
-                      PetsConfig, DailyLoginConfig, Stage3DConfig, ArenaConfig, ExternalConfig,
-                      MysteryBoxConfig, DailyQuestsConfig, SocialConfig, NexusShopConfig, ToSConfig,
-                      SupportCampaignConfig, SeasonalEventConfig, this);
-      this.context.logLevel = LogLevel.DEBUG;
-   }
+    public function onStageResize(_:Event):void {
+        this.scaleX = stage.stageWidth / 800;
+        this.scaleY = stage.stageHeight / 600;
+        this.x = (800 - stage.stageWidth) / 2;
+        this.y = (600 - stage.stageHeight) / 2;
+        sWidth = stage.stageWidth;
+        sHeight = stage.stageHeight;
+    }
 
-   public function onStageResize(_:Event) : void {
-      this.scaleX = stage.stageWidth / 800;
-      this.scaleY = stage.stageHeight / 600;
-      this.x = (800 - stage.stageWidth) / 2;
-      this.y = (600 - stage.stageHeight) / 2;
-      sWidth = stage.stageWidth;
-      sHeight = stage.stageHeight;
-   }
+    private function onAddedToStage(_:Event):void {
+        stage.addEventListener(Event.RESIZE, this.onStageResize, false, 0, true);
+        removeEventListener(Event.ADDED_TO_STAGE, this.onAddedToStage);
+        this.setup();
+    }
 
-   private function onAddedToStage(_:Event) : void {
-      stage.addEventListener(Event.RESIZE, this.onStageResize, false, 0, true);
-      removeEventListener(Event.ADDED_TO_STAGE, this.onAddedToStage);
-      this.setup();
-   }
+    private static function onActivate(_:Event):void {
+        focus = true;
+    }
 
-   private static function onActivate(_:Event) : void {
-      focus = true;
-   }
+    private static function onDeactivate(_:Event):void {
+        focus = false;
+    }
 
-   private static function onDeactivate(_:Event) : void {
-      focus = false;
-   }
-
-   private static function onKeyDown(keyEvent:KeyboardEvent) : void {
-      if (keyEvent.keyCode == KeyCodes.ESCAPE)
-         keyEvent.preventDefault();
-   }
+    private static function onKeyDown(keyEvent:KeyboardEvent):void {
+        if (keyEvent.keyCode == KeyCodes.ESCAPE)
+            keyEvent.preventDefault();
+    }
 }
 }

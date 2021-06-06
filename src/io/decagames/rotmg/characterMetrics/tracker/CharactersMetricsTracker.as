@@ -1,7 +1,9 @@
 package io.decagames.rotmg.characterMetrics.tracker {
 import com.hurlant.util.Base64;
+
 import flash.utils.Dictionary;
 import flash.utils.IDataInput;
+
 import io.decagames.rotmg.characterMetrics.data.CharacterMetricsData;
 
 import kabam.rotmg.messaging.impl.data.CompressedInt;
@@ -10,36 +12,34 @@ public class CharactersMetricsTracker {
 
     public static const STATS_SIZE:int = 5;
 
-
+    public function CharactersMetricsTracker() {
+        super();
+    }
     private var charactersStats:Dictionary;
 
     private var _lastUpdate:Date;
 
-    public function CharactersMetricsTracker() {
-        super();
-    }
-
-    public function get lastUpdate() : Date {
+    public function get lastUpdate():Date {
         return this._lastUpdate;
     }
 
-    public function setBinaryStringData(param1:int, param2:String) : void {
+    public function setBinaryStringData(param1:int, param2:String):void {
         var _loc5_:RegExp = /-/g;
         var _loc4_:RegExp = /_/g;
         var _loc3_:int = 4 - param2.length % 4;
-        while(true) {
+        while (true) {
             _loc3_--;
-            if(_loc3_) {
+            if (_loc3_) {
                 param2 = param2 + "=";
                 continue;
             }
             break;
         }
-        param2 = param2.replace(_loc5_,"+").replace(_loc4_,"/");
-        this.setBinaryData(param1,Base64.decodeToByteArray(param2));
+        param2 = param2.replace(_loc5_, "+").replace(_loc4_, "/");
+        this.setBinaryData(param1, Base64.decodeToByteArray(param2));
     }
 
-    public function setBinaryData(charId:int, data:IDataInput) : void {
+    public function setBinaryData(charId:int, data:IDataInput):void {
         if (!this.charactersStats)
             this.charactersStats = new Dictionary();
 
@@ -55,20 +55,20 @@ public class CharactersMetricsTracker {
         this._lastUpdate = new Date();
     }
 
-    public function getCharacterStat(param1:int, param2:int) : int {
-        if(!this.charactersStats) {
+    public function getCharacterStat(param1:int, param2:int):int {
+        if (!this.charactersStats) {
             this.charactersStats = new Dictionary();
         }
-        if(!this.charactersStats[param1]) {
+        if (!this.charactersStats[param1]) {
             return 0;
         }
         return this.charactersStats[param1].getStat(param2);
     }
 
-    public function parseCharListData(param1:XML) : void {
+    public function parseCharListData(param1:XML):void {
         var _loc2_:* = null;
         for each(_loc2_ in param1.Char) {
-            this.setBinaryStringData(int(_loc2_.@id),_loc2_.PCStats);
+            this.setBinaryStringData(int(_loc2_.@id), _loc2_.PCStats);
         }
     }
 }
