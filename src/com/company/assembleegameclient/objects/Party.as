@@ -44,8 +44,8 @@ public class Party {
         for each(var _local4:GameObject in this.map_.goDict_) {
             if (_local4 is Player && _local4 != _local3) {
                 _local5 = _local4 as Player;
-                _local5.starred_ = this.starred_[_local5.accountId_] != undefined;
-                _local5.ignored_ = this.ignored_[_local5.accountId_] != undefined;
+                _local5.starred_ = this.starred_[_local5.accountId_] == undefined ? false : this.starred_[_local5.accountId_];
+                _local5.ignored_ = this.ignored_[_local5.accountId_] == undefined ? false : this.ignored_[_local5.accountId_];
                 _local5.distSqFromThisPlayer_ = PointUtil.distanceSquaredXY(_local3.x_, _local3.y_, _local5.x_, _local5.y_);
                 if (_local5.distSqFromThisPlayer_ < 2500 || _local5.starred_) {
                     this.members_.push(_local5);

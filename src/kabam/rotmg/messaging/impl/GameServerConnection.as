@@ -8,6 +8,7 @@ import flash.utils.ByteArray;
 
 import kabam.lib.net.impl.SocketServer;
 import kabam.rotmg.messaging.impl.data.SlotObjectData;
+import kabam.rotmg.messaging.impl.data.WorldPosData;
 import kabam.rotmg.servers.api.Server;
 
 import org.osflash.signals.Signal;
@@ -241,7 +242,7 @@ public class GameServerConnection {
     public function playerHit(param1:int, param2:int):void {
     }
 
-    public function enemyHit(param1:int, param2:int, param3:int, param4:Boolean, ownerId:int, containerType:int):void {
+    public function enemyHit(param1:int, param2:int, param3:int, param4:Boolean, ownerId:int, projectileOwnerId:int):void {
     }
 
     public function otherHit(param1:int, param2:int, param3:int, param4:int):void {
@@ -310,6 +311,10 @@ public class GameServerConnection {
     }
 
     public function changeAllyShoot(toggle:int):void {
+    }
+
+    public function moveCreep(x:int, y:int, objId:int, hold:Boolean) : void {
+
     }
 }
 }

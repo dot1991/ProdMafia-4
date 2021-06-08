@@ -19,8 +19,6 @@ public class Notification extends IncomingMessage {
     public var extraValue:int;
     public var message:String;
     public var uiNotificationType:int;
-    public var portalIdx:int;
-    public var portalObjId:int;
     public var position:int;
     public var objectId_:int;
     public var color:int;
@@ -37,8 +35,7 @@ public class Notification extends IncomingMessage {
                 this.uiNotificationType = input.readShort();
                 break;
             case QUEUE:
-                this.portalIdx = input.readShort();
-                this.portalObjId = input.readShort();
+                this.objectId_ = input.readInt();
                 this.position = input.readShort();
                 break;
             case OBJECT_STATUS_TEXT:

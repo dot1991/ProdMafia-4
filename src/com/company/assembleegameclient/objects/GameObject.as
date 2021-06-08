@@ -158,6 +158,7 @@ public class GameObject extends BasicObject {
         }
         this.props_.loadSounds();
     }
+    public var projectileOwnerId:int = -1;
     public var nameBitmapData_:BitmapData = null;
     public var shockEffect:ShockerEffect;
     public var spritesProjectEffect:SpritesProjectEffect;
@@ -345,6 +346,17 @@ public class GameObject extends BasicObject {
     }
 
     override public function removeFromMap():void {
+        if (projectileOwnerId != -1) {
+            var player:Player = map_.goDict_[projectileOwnerId] as Player;
+            if (player) {
+                var idx:int = player.creeps.indexOf(objectId_);
+                if (idx != -1) {
+                    player.creeps.removeAt(idx);
+                    player.creepMovable.removeAt(idx);
+                }
+            }
+        }
+
         if (square && this.props_.static_) {
             if (square.obj_ == this) {
                 square.obj_ = null;
@@ -363,11 +375,13 @@ public class GameObject extends BasicObject {
         var _loc6_:Number = NaN;
         var _loc5_:Number = NaN;
         var _loc3_:Boolean = false;
-        if (Parameters.data.showMobInfo) {
-            if (!this.mobInfoShown && this.props_.isEnemy_) {
-                this.mobInfo("" + this.objectType_);
-                this.mobInfoShown = true;
-            }
+        if (Parameters.data.debugMod && !this.mobInfoShown) {
+            this.mobInfo("Type=" + this.objectType_ + ",Id=" + this.objectId_);
+            this.mobInfoShown = true;
+        } else if (Parameters.data.showMobInfo &&
+                !this.mobInfoShown && this.props_.isEnemy_) {
+            this.mobInfo("Type=" + this.objectType_);
+            this.mobInfoShown = true;
         } else {
             this.mobInfoShown = false;
         }

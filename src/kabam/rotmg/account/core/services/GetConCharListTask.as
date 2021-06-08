@@ -1,6 +1,5 @@
 package kabam.rotmg.account.core.services {
 import com.company.assembleegameclient.parameters.Parameters;
-import com.company.util.MoreObjectUtil;
 
 import kabam.lib.tasks.BaseTask;
 import kabam.rotmg.account.core.Account;
@@ -35,9 +34,8 @@ public class GetConCharListTask extends BaseTask {
     }
 
     public function makeRequestData():Object {
-        var _loc1_:* = {};
-        MoreObjectUtil.addToObject(_loc1_, this.account.getAccessToken());
-        MoreObjectUtil.addToObject(_loc1_, this.account.getAccessToken());
+        var _loc1_:Object = {};
+        _loc1_.accessToken = this.account.getAccessToken();
         _loc1_.game_net_user_id = this.account.gameNetworkUserId();
         _loc1_.game_net = this.account.gameNetwork();
         _loc1_.play_platform = this.account.playPlatform();

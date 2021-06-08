@@ -1,6 +1,4 @@
 package kabam.rotmg.ui.commands {
-import com.company.util.MoreObjectUtil;
-
 import flash.events.TimerEvent;
 import flash.utils.Timer;
 
@@ -25,7 +23,7 @@ public class PollVerifyEmailCommand {
     public function execute():void {
         this._aeClient = StaticInjectorContext.getInjector().getInstance(AppEngineClient);
         this._params = {};
-        MoreObjectUtil.addToObject(this._params, this.account.getAccessToken());
+        this._params.accessToken = this.account.getAccessToken();
         this.setupTimer();
     }
 

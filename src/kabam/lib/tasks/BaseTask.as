@@ -51,8 +51,9 @@ public class BaseTask implements Task {
         if (!this._isStarted) {
             this._isStarted = true;
             ((this._started) && (this._started.dispatch(this)));
-            this.startTask();
         }
+
+        this.startTask();
     }
 
     final public function reset():void {

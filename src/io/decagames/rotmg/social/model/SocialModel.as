@@ -109,6 +109,7 @@ public class SocialModel {
     }
 
     public function loadGuildData():void {
+        trace("a", this._guildLoadInProgress)
         if (this._guildLoadInProgress) {
             return;
         }

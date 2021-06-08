@@ -10,6 +10,7 @@ public class EnemyHit extends OutgoingMessage {
     public var targetId_:int;
     public var ownerId:int;
     public var kill_:Boolean;
+    public var projectileOwnerId:int;
 
     override public function writeToOutput(param1:IDataOutput):void {
         param1.writeInt(this.time_);
@@ -17,7 +18,7 @@ public class EnemyHit extends OutgoingMessage {
         param1.writeInt(this.ownerId);
         param1.writeInt(this.targetId_);
         param1.writeBoolean(this.kill_);
-        param1.writeInt(this.ownerId);
+        param1.writeInt(this.projectileOwnerId);
     }
 
     override public function toString():String {

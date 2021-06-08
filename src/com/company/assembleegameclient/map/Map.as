@@ -346,7 +346,8 @@ public class Map extends AbstractMap {
             _loc4_ = -_loc7_;
             while (_loc4_ <= _loc7_) {
                 if (_loc6_ * _loc6_ + _loc4_ * _loc4_ <= _loc7_ * _loc7_) {
-                    _loc5_ = this.lookupSquare(_loc6_ + this.player_.x_, _loc4_ + this.player_.y_);
+                    var playerPos:Point = this.player_ ? new Point(this.player_.x_, this.player_.y_) : new Point();
+                    _loc5_ = this.lookupSquare(_loc6_ + playerPos.x, _loc4_ + playerPos.y);
                     if (_loc5_ != null) {
                         _loc5_.lastVisible_ = param2;
                         _loc5_.draw(this.graphicsData_, param1, param2);
@@ -435,11 +436,13 @@ public class Map extends AbstractMap {
                 return;
             }
         }
+
         if (name_ == "Oryx\'s Chamber" && this.oryxObjectId == 0) {
             if (param1 is Character && (param1 as Character).getName() == "Oryx the Mad God") {
                 this.oryxObjectId = param1.objectId_;
             }
         }
+
         _loc2_[param1.objectId_] = param1;
     }
 
@@ -475,11 +478,14 @@ public class Map extends AbstractMap {
         return _loc4_;
     }
 
-    public function lookupSquare(param1:int, param2:int):Square {
-        if (param1 < 0 || param1 >= mapWidth || param2 < 0 || param2 >= mapHeight) {
+    override public function lookupSquare(x:Number, y:Number) : Square {
+        var intX:int = int(x);
+        var intY:int = int(y);
+
+        if (!squares || intX < 0 || intX >= mapWidth || intY < 0 || intY >= mapHeight)
             return null;
-        }
-        return squares[param1 + param2 * mapWidth];
+
+        return squares[intX + intY * mapWidth];
     }
 
     private function forceSoftwareRenderCheck(param1:String):void {

@@ -128,5 +128,9 @@ public class AbstractMap extends Sprite {
     public function enumGOAngles():Number {
         return 0;
     }
+
+    public function lookupSquare(x:Number, y:Number) : Square {
+        return null;
+    }
 }
 }

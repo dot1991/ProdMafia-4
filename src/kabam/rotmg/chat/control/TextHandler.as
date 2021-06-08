@@ -312,13 +312,11 @@ public class TextHandler {
     }
 
     private function isToBeLocalized(param1:String):Boolean {
-        return param1.charAt(0) == "{" && param1.charAt(param1.length - 1) == "}";
+        return param1.indexOf("\"key\":") != -1;
     }
 
     private function getLocalizedString(param1:String):String {
-        var _loc2_:LineBuilder = LineBuilder.fromJSON(param1);
-        _loc2_.setStringMap(this.stringMap);
-        return _loc2_.getString();
+        return LineBuilder.getLocalizedStringFromJSON(param1);
     }
 
     private function showSpeechBaloon(param1:Text, param2:String):void {

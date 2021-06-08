@@ -2,7 +2,6 @@ package com.company.assembleegameclient.ui.guild {
 import com.company.assembleegameclient.ui.Scrollbar;
 import com.company.assembleegameclient.util.GuildUtil;
 import com.company.ui.BaseSimpleText;
-import com.company.util.MoreObjectUtil;
 
 import flash.display.Bitmap;
 import flash.display.Shape;
@@ -35,9 +34,9 @@ public class GuildPlayerList extends Sprite {
         var _loc6_:Account = StaticInjectorContext.getInjector().getInstance(Account);
         var _loc5_:Object = {
             "num": param1,
-            "offset": param2
+            "offset": param2,
+            "accessToken": _loc6_.getAccessToken()
         };
-        MoreObjectUtil.addToObject(_loc5_, _loc6_.getAccessToken());
         this.listClient_ = StaticInjectorContext.getInjector().getInstance(AppEngineClient);
         this.listClient_.setMaxRetries(2);
         this.listClient_.complete.addOnce(this.onComplete);

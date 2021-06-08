@@ -1,6 +1,4 @@
 package io.decagames.rotmg.social.tasks {
-import com.company.util.MoreObjectUtil;
-
 import kabam.lib.tasks.BaseTask;
 import kabam.rotmg.account.core.Account;
 import kabam.rotmg.appengine.api.AppEngineClient;
@@ -38,9 +36,10 @@ public class GuildDataRequestTask extends BaseTask implements ISocialTask {
     override protected function startTask():void {
         this.client.setMaxRetries(8);
         this.client.complete.addOnce(this.onComplete);
-        var _loc1_:Object = this.account.getAccessToken();
-        MoreObjectUtil.addToObject(_loc1_, this.account.getAccessToken());
+        var _loc1_:Object = {};
+        _loc1_.accessToken = this.account.getAccessToken();
         _loc1_.targetName = "";
+        _loc1_.accessToken = this.account.getAccessToken();
         _loc1_.game_net_user_id = this.account.gameNetworkUserId();
         _loc1_.game_net = this.account.gameNetwork();
         _loc1_.play_platform = this.account.playPlatform();

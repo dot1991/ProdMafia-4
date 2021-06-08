@@ -14,10 +14,10 @@ public class ServerPlayerShoot extends IncomingMessage {
     public var startingPos_:WorldPosData;
     public var angle_:Number;
     public var damage_:int;
-    public var creepObjId:int;
+    public var projectileOwnerId:int;
     public var isMultiShotCreep:Boolean;
-    public var shotCount:int = 1;
-    public var angleIncRad:Number;
+    public var shotCount:int;
+    public var angleInc:Number;
 
     override public function parseFromInput(input:IDataInput):void {
         this.bulletId_ = input.readUnsignedByte();
@@ -26,16 +26,21 @@ public class ServerPlayerShoot extends IncomingMessage {
         this.startingPos_.parseFromInput(input);
         this.angle_ = input.readFloat();
         this.damage_ = input.readShort();
-        this.creepObjId = input.readInt();
+        this.projectileOwnerId = input.readInt();
         this.isMultiShotCreep = input.readBoolean();
         if (input.bytesAvailable > 0) {
             this.shotCount = input.readByte();
-            this.angleIncRad = input.readFloat();
+            this.angleInc = input.readFloat();
+        } else {
+            this.shotCount = 1;
+            this.angleInc = 0;
         }
     }
 
     override public function toString():String {
-        return formatToString("SHOOT", "bulletId_", "ownerId_", "containerType_", "startingPos_", "angle_", "damage_");
+        return formatToString("SERVERPLAYERSHOOT", "bulletId_", "ownerId_", "containerType_",
+                "startingPos_", "angle_", "damage_", "projectileOwnerId", "isMultiShotCreep",
+                "shotCount", "angleInc");
     }
 }
 }

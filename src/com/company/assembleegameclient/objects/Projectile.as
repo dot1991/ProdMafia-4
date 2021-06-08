@@ -49,7 +49,6 @@ public class Projectile extends BasicObject {
     public function Projectile() {
         this.p_ = new Point3D(100);
         this.curPos = new Point();
-        this.sinePos = new Point();
         this.staticVector3D_ = new Vector3D();
         this.shadowGradientFill_ = new GraphicsGradientFill("radial", [0, 0], [0.5, 0], null, new Matrix());
         this.shadowPath_ = new GraphicsPath(GraphicsUtil.QUAD_COMMANDS, new Vector.<Number>());
@@ -89,9 +88,9 @@ public class Projectile extends BasicObject {
     public var speedMod:Number;
     public var projHasConditions:Boolean;
     public var curPos:Point;
+    public var projectileOwnerId:int;
     protected var shadowGradientFill_:GraphicsGradientFill;
     protected var shadowPath_:GraphicsPath;
-    private var sinePos:Point;
     private var staticVector3D_:Vector3D;
 
     override public function addTo(param1:Map, param2:Number, param3:Number):Boolean {
@@ -125,13 +124,13 @@ public class Projectile extends BasicObject {
         var _loc4_:* = undefined;
         var _loc14_:* = undefined;
         var _loc15_:* = undefined;
-        var _loc5_:Player = null;
-        var _loc3_:* = false;
-        var _loc8_:Boolean = false;
+        var player:Player = null;
+        var playerExists:* = false;
+        var isEnemy:Boolean = false;
         var _loc6_:Boolean = false;
         var _loc13_:int = 0;
         var _loc9_:* = false;
-        var _loc11_:GameObject = null;
+        var target:GameObject = null;
         var _loc19_:* = null;
         var _loc17_:* = undefined;
         var _loc10_:int = 0;
@@ -142,53 +141,55 @@ public class Projectile extends BasicObject {
 
         var gsc:GameServerConnection = this.map_.gs_.gsc_;
         this.curPos = this.positionAt(elapsed);
-        if (!moveTo(this.curPos.x + this.sinePos.x, this.curPos.y + this.sinePos.y) || this.square.tileType == 65535) {
+        if (!moveTo(this.curPos.x, this.curPos.y) || this.square.tileType == 65535) {
             if (this.damagesPlayers_) {
                 gsc.squareHit(param1, this.bulletId_, this.ownerId_);
             } else if (this.square.obj_) {
                 if (!Parameters.data.noParticlesMaster || !Parameters.data.liteParticle) {
                     if (!this.texture_) {
                         _loc15_ = getColors(this.texture_);
-                        this.map_.addObj(new HitEffect(_loc15_, 100, 3, this.angle, this.projProps.speed), this.curPos.x + this.sinePos.x, this.curPos.y + this.sinePos.y);
+                        this.map_.addObj(new HitEffect(_loc15_, 100, 3, this.angle, this.projProps.speed), this.curPos.x, this.curPos.y);
                     }
                 }
             }
             return false;
         }
-        _loc5_ = this.map_.player_;
-        if (!(this.ownerId_ == _loc5_.objectId_ && Parameters.data.PassesCover)) {
-            _loc11_ = this.square.obj_;
-            if (_loc11_) {
-                _loc19_ = _loc11_.props_;
+        player = this.map_.player_;
+        if (!((this.ownerId_ == player.objectId_ || this.projectileOwnerId == player.objectId_) && Parameters.data.PassesCover)) {
+            target = this.square.obj_;
+            if (target) {
+                _loc19_ = target.props_;
                 if ((!_loc19_.isEnemy_ || !this.damagesEnemies_) && (_loc19_.enemyOccupySquare_ || !this.projProps.passesCover_ && _loc19_.occupySquare_)) {
                     if (this.damagesPlayers_) {
-                        gsc.otherHit(param1, this.bulletId_, this.ownerId_, _loc11_.objectId_);
+                        gsc.otherHit(param1, this.bulletId_, this.ownerId_, target.objectId_);
                     } else if (!Parameters.data.noParticlesMaster) {
                         if (!this.texture_) {
                             _loc15_ = getColors(this.texture_);
-                            this.map_.addObj(new HitEffect(_loc15_, 100, 3, this.angle, this.projProps.speed), this.curPos.x + this.sinePos.x, this.curPos.y + this.sinePos.y);
+                            this.map_.addObj(new HitEffect(_loc15_, 100, 3, this.angle, this.projProps.speed), this.curPos.x, this.curPos.y);
                         }
                     }
                     return false;
                 }
             }
         }
-        _loc11_ = getHit(this.curPos.x + this.sinePos.x, this.curPos.y + this.sinePos.y);
-        if (_loc11_) {
-            _loc3_ = _loc5_ != null;
-            _loc8_ = _loc11_.props_.isEnemy_;
-            _loc6_ = _loc3_ && (this.damagesPlayers_ || _loc8_ && this.ownerId_ == _loc5_.objectId_);
+        target = getHit(this.curPos.x, this.curPos.y);
+        if (target) {
+            playerExists = player != null;
+            isEnemy = target.props_.isEnemy_;
+            _loc6_ = playerExists &&
+                    (this.damagesPlayers_ || isEnemy && (this.ownerId_ == player.objectId_
+                            || this.projectileOwnerId == player.objectId_));
             if (_loc6_) {
-                _loc13_ = _loc11_.damageWithDefense(this.damage_, _loc11_.defense_, this.projProps.armorPiercing_, _loc11_.condition_);
-                _loc9_ = _loc11_.hp_ <= _loc13_;
-                if (_loc11_ == _loc5_) {
-                    if (!Parameters.data.noClip && _loc5_.subtractDamage(_loc13_, param1)) {
+                _loc13_ = target.damageWithDefense(this.damage_, target.defense_, this.projProps.armorPiercing_, target.condition_);
+                _loc9_ = target.hp_ <= _loc13_;
+                if (target == player) {
+                    if (!Parameters.data.noClip && player.subtractDamage(_loc13_, param1)) {
                         return false;
                     }
                     _loc17_ = this.projProps.effects_;
                     if (_loc17_) {
                         elapsed = _loc17_.length;
-                        _loc3_ = false;
+                        playerExists = false;
                         _loc10_ = 0;
                         while (_loc10_ < elapsed) {
                             _loc12_ = uint(_loc17_[_loc10_]);
@@ -198,39 +199,40 @@ public class Projectile extends BasicObject {
                                 _loc12_ = uint(1 << _loc12_ - 32 & Parameters.data.ssdebuffBitmask);
                             }
                             if (_loc12_ > 0) {
-                                _loc3_ = true;
+                                playerExists = true;
                             }
                             _loc10_++;
                         }
-                        if (_loc3_) {
-                            _loc11_.damage(true, _loc13_, null, false, this);
+                        if (playerExists) {
+                            target.damage(true, _loc13_, null, false, this);
                         } else {
-                            _loc11_.damage(true, _loc13_, this.projProps.effects_, false, this);
+                            target.damage(true, _loc13_, this.projProps.effects_, false, this);
                             if (!Parameters.data.noClip) {
                                 this.map_.gs_.hitQueue.push(new Hit(this.bulletId_, this.ownerId_));
                             }
                         }
                     } else {
-                        _loc11_.damage(true, _loc13_, this.projProps.effects_, false, this);
+                        target.damage(true, _loc13_, this.projProps.effects_, false, this);
                         if (!Parameters.data.noClip) {
                             this.map_.gs_.hitQueue.push(new Hit(this.bulletId_, this.ownerId_));
                         }
                     }
-                } else if (_loc11_.props_.isEnemy_) {
-                    gsc.enemyHit(param1, this.bulletId_, _loc11_.objectId_, _loc9_, this.ownerId_, this.containerType_);
-                    _loc11_.damage(true, _loc13_, this.projProps.effects_, _loc9_, this);
-                    if (isNaN(Parameters.dmgCounter[_loc11_.objectId_])) {
-                        Parameters.dmgCounter[_loc11_.objectId_] = 0;
+                } else if (target.props_.isEnemy_) {
+                    gsc.enemyHit(param1, this.bulletId_, target.objectId_, _loc9_,
+                            this.ownerId_, this.projectileOwnerId);
+                    target.damage(true, _loc13_, this.projProps.effects_, _loc9_, this);
+                    if (isNaN(Parameters.dmgCounter[target.objectId_])) {
+                        Parameters.dmgCounter[target.objectId_] = 0;
                     }
-                    _loc4_ = _loc11_.objectId_;
+                    _loc4_ = target.objectId_;
                     _loc14_ = Parameters.dmgCounter[_loc4_] + _loc13_;
                     Parameters.dmgCounter[_loc4_] = _loc14_;
                 } else if (!projProps.multiHit_) {
-                    gsc.otherHit(param1, this.bulletId_, this.ownerId_, _loc11_.objectId_);
+                    gsc.otherHit(param1, this.bulletId_, this.ownerId_, target.objectId_);
                 }
             }
             if (this.projProps.multiHit_) {
-                this.multiHitDict_[_loc11_.objectId_] = true;
+                this.multiHitDict_[target.objectId_] = true;
             } else {
                 return false;
             }
@@ -259,7 +261,7 @@ public class Projectile extends BasicObject {
         if (this.projProps.particleTrail_ && !(Parameters.data.noParticlesMaster || Parameters.data.liteParticle)) {
             _loc4_ = 0;
             while (_loc4_ < 3) {
-                if (!(this.map_ != null && this.map_.player_.objectId_ != this.ownerId_) || !(this.projProps.particleTrailIntensity_ == -1 && Math.random() * 100 > this.projProps.particleTrailIntensity_)) {
+                if (!(this.map_ != null && this.map_.player_.objectId_ != this.ownerId_ && this.map_.player_.objectId_ != this.projectileOwnerId) || !(this.projProps.particleTrailIntensity_ == -1 && Math.random() * 100 > this.projProps.particleTrailIntensity_)) {
                     this.map_.addObj(new SparkParticle(100, this.projProps.particleTrailColor_, this.projProps.particleTrailLifetimeMS != -1 ? this.projProps.particleTrailLifetimeMS : 600, 0.5, RandomUtil.plusMinus(3), RandomUtil.plusMinus(3)), this.x_, this.y_);
                 }
                 _loc4_++;
@@ -267,7 +269,11 @@ public class Projectile extends BasicObject {
         }
     }
 
-    public function reset(param1:int, param2:int, param3:int, param4:int, param5:Number, param6:int, param7:String = "", param8:String = "", param9:Number = 1.0, param10:Number = 1.0, param11:ObjectProperties = null, param12:ProjectileProperties = null, param13:int = 0):void {
+    public function reset(param1:int, param2:int, param3:int, param4:int,
+                          param5:Number, param6:int, projectileOwnerId:int, param7:String = "",
+                          param8:String = "", param9:Number = 1.0, param10:Number = 1.0,
+                          param11:ObjectProperties = null, param12:ProjectileProperties = null,
+                          param13:int = 0):void {
         var _loc14_:Number = NaN;
         clear();
         this.containerType_ = param1;
@@ -285,6 +291,7 @@ public class Projectile extends BasicObject {
         this.lifeMul_ = Parameters.data.lifeMul == 1.0 ? param9 : Parameters.data.lifeMul;
         this.speedMul = Parameters.data.speedMul == 1.0 ? param10 : Parameters.data.speedMul;
         this.objectId_ = getNewObjId(this.ownerId_, this.bulletId_);
+        this.projectileOwnerId = projectileOwnerId;
         z_ = 0.5;
         if (param11 == null) {
             this.containerProps_ = ObjectLibrary.propsLibrary_[this.containerType_];
@@ -305,7 +312,7 @@ public class Projectile extends BasicObject {
         var _loc16_:TextureData = ObjectLibrary.typeToTextureData_[this.props_.type_];
         this.texture_ = _loc16_.getTexture(this.objectId_);
         this.damagesPlayers_ = this.containerProps_.isEnemy_;
-        this.damagesEnemies_ = !this.damagesPlayers_;
+        this.damagesEnemies_ = !this.damagesPlayers_ || this.projectileOwnerId != this.ownerId_;
         this.sound_ = this.containerProps_.oldSound_;
         this.multiHitDict_ = !!this.projProps.multiHit_ ? new Dictionary() : null;
         this.multiHitVec = !!this.projProps.multiHit_ ? new Vector.<int>(0) : null;
@@ -317,7 +324,6 @@ public class Projectile extends BasicObject {
         this.p_.setSize(_loc14_ * 0.01 * 8);
         this.damage_ = 0;
         this.lastUpdateElapsed = 0;
-        this.sinePos = new Point();
         this.speedMod = 0;
     }
 

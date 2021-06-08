@@ -1,6 +1,5 @@
 package com.company.assembleegameclient.ui.board {
 import com.company.assembleegameclient.ui.dialogs.Dialog;
-import com.company.util.MoreObjectUtil;
 
 import flash.display.Graphics;
 import flash.display.Shape;
@@ -110,7 +109,7 @@ public class GuildBoardWindow extends Sprite {
     private function onEditComplete(param1:Event):void {
         var _loc2_:Account = StaticInjectorContext.getInjector().getInstance(Account);
         var _loc3_:Object = {"board": this.editBoard_.getText()};
-        MoreObjectUtil.addToObject(_loc3_, _loc2_.getAccessToken());
+        _loc3_.accessToken = _loc2_.getAccessToken();
         this.client = StaticInjectorContext.getInjector().getInstance(AppEngineClient);
         this.client.complete.addOnce(this.onSetBoardComplete);
         this.client.sendRequest("/guild/setBoard", _loc3_);

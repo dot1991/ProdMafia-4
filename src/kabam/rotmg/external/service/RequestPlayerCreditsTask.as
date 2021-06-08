@@ -1,6 +1,4 @@
 package kabam.rotmg.external.service {
-import com.company.util.MoreObjectUtil;
-
 import flash.events.TimerEvent;
 import flash.utils.Timer;
 
@@ -67,8 +65,8 @@ public class RequestPlayerCreditsTask extends BaseTask {
     }
 
     private function makeRequestObject():Object {
-        var _loc1_:* = {};
-        MoreObjectUtil.addToObject(_loc1_, this.account.getAccessToken());
+        var _loc1_:Object = {};
+        _loc1_.accessToken = this.account.getAccessToken();
         return _loc1_;
     }
 

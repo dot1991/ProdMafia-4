@@ -140,6 +140,10 @@ public class Player extends Character {
         this.breathBarFillMatrix = new Matrix();
         this.breathBarBackFillMatrix = new Matrix();
     }
+
+    public var summonerTarget:GameObject = null;
+    public var creeps:Vector.<int> = new Vector.<int>();
+    public var creepMovable:Vector.<Boolean> = new Vector.<Boolean>();
     public var unlockedBlueprints:Vector.<int> = new <int>[];
     public var isWalking:Boolean = false;
     public var projectileLifeMult:Number = 1.0;
@@ -1346,6 +1350,64 @@ public class Player extends Character {
         this.shoot(Parameters.data.cameraAngle + param1);
     }
 
+    public function isSummonUnmovable(objType:int) : Boolean {
+        return objType == 0x89b4  ||                    // Celestial Forest
+                objType == 0x89b7 ||                    // Hivemind
+                objType == 0x4251 || objType == 0x37a9; // Mechanical
+    }
+
+    public function resolveSummonLifetime(objType:int) : int {
+        switch (objType) {
+            default: return 7000;
+            case 0x89ab: return 9000;  // T0
+            case 0x89ac: return 9600;  // T1
+            case 0x89ad: return 10200; // T2
+            case 0x89ae: return 10800; // T3
+            case 0x89af: return 11400; // T4
+            case 0x89b0: return 12000; // T5
+            case 0x89b1: return 12600; // T6
+            case 0x89b2: return 13200; // T7
+            case 0x89b3: return 13800; // T8
+            case 0x4844: case 0x4845: case 0x4846: case 0x4847:
+                return 10000; // Recursion
+            case 0x89b4: return 12000; // Celestial Forest
+            case 0x3801: return 10000; // Crystal
+            case 0x89b6: return 10000; // Depths
+            case 0x89b7: return 10000; // Hivemind
+            case 0x3797: case 0x37a2: case 0x37a3: case 0x37a4:
+                return 7000;  // B.O.O.M.
+            case 0x3806: return 12600;    // North Pole
+            case 0x4251: case 0x37a9:
+                return 10200;    // Mechanical
+            case 0x89b8: return 9200;  // Incubation
+        }
+    }
+
+    public function resolveSummonerTarget() : void {
+        var highestHP:int = -1;
+        var currTarget:GameObject = null;
+
+        for each (var go:GameObject in map_.vulnEnemyDict_) {
+            if (go.isInvulnerable_() || go.isInvincible_() || go.isStasis_() ||
+                    !(go is Character))
+                continue;
+
+            if (Parameters.data.AAIgnore.indexOf(go.objectType_) != -1)
+                continue;
+
+            var dist:Number = PointUtil.distanceSquaredXY(go.x_, go.y_, x_, y_);
+            if (dist > 14*14)
+                continue;
+
+            if (go.hp_ > highestHP) {
+                currTarget = go;
+                highestHP = go.hp_;
+            }
+        }
+
+        this.summonerTarget = currTarget;
+    }
+
     public function attemptAutoAim(param1:Number):void {
         var _loc2_:int = this.equipment_[0];
         var _loc3_:int = TimeUtil.getModdedTime();
@@ -1361,16 +1423,17 @@ public class Player extends Character {
         this.attemptAutoAbility(param1, _loc3_, this.equipment_[1]);
     }
 
-    public function attemptAutoAbility(param1:Number, param2:int = -1, param3:int = 0):void {
-        if (param3 == 0) {
-            param3 = this.equipment_[1];
+    public function attemptAutoAbility(param1:Number, param2:int = -1, equip:int = 0):void {
+        if (equip == 0) {
+            equip = this.equipment_[1];
         }
         if (param2 == -1) {
             param2 = map_.gs_.lastUpdate_;
         }
-        if (param3 != -1 && Parameters.data.AutoAbilityOn && !this.map_.gs_.isSafeMap && Parameters.abi && this.mp_ >= this.autoMpPercentNumber) {
-            this.shootAutoAimAbilityAngle(param3, param2);
-        }
+
+        if (equip != -1 && Parameters.data.AutoAbilityOn && !this.map_.gs_.isSafeMap
+                && this.mp_ >= this.autoMpPercentNumber)
+            this.shootAutoAimAbilityAngle(equip, param2);
     }
 
     public function shootAutoAimWeaponAngle(param1:int, param2:int):Boolean {
@@ -1409,7 +1472,7 @@ public class Player extends Character {
         return false;
     }
 
-    public function shootAutoAimAbilityAngle(param1:int, param2:int):void {
+    public function shootAutoAimAbilityAngle(param1:int, time:int):void {
         var _loc11_:* = undefined;
         var _loc15_:int = 0;
         var _loc13_:* = undefined;
@@ -1420,20 +1483,24 @@ public class Player extends Character {
         var _loc4_:* = null;
         var _loc5_:ProjectileProperties = null;
         var _loc7_:XML = ObjectLibrary.xmlLibrary_[param1];
-        if (!this.canUseAltWeapon(param2, _loc7_)) {
+        if (!this.canUseAltWeapon(time, _loc7_)) {
             return;
         }
-        if (param2 - this.lastAutoAbilityAttempt <= 550) {
+        if (time - this.lastAutoAbilityAttempt <= 550) {
             return;
         }
-        var _loc10_:Point = this.sToW(this.mousePos_.x, this.mousePos_.y);
-        param2 = TimeUtil.getModdedTime();
-        var _loc14_:* = this.objectType_;
-        var _loc18_:* = _loc14_;
-        switch (_loc18_) {
+        var mousePos:Point = this.sToW(this.mousePos_.x, this.mousePos_.y);
+        time = TimeUtil.getModdedTime();
+        switch (this.objectType_) {
+            case 0x0331:
+                if (creeps.length >= 3)
+                    return;
+
+                this.useAltWeapon(x_, y_, 1, time, true);
+                return;
             case 784:
-                this.priestHeal(param2);
-                this.lastAutoAbilityAttempt = param2;
+                this.priestHeal(time);
+                this.lastAutoAbilityAttempt = time;
                 return;
             case 768:
                 _loc11_ = _loc7_.Activate;
@@ -1447,20 +1514,20 @@ public class Player extends Character {
                 }
             case 797:
             case 799:
-                this.useAltWeapon(this.x_, this.y_, 1, param2, true, _loc7_);
-                this.lastAutoAbilityAttempt = param2;
+                this.useAltWeapon(this.x_, this.y_, 1, time, true, _loc7_);
+                this.lastAutoAbilityAttempt = time;
                 return;
             case 806:
                 if (!this.isNinjaSpeedy) {
-                    this.useAltWeapon(this.x_, this.y_, 1, param2, true, _loc7_);
-                    this.lastAutoAbilityAttempt = param2;
+                    this.useAltWeapon(this.x_, this.y_, 1, time, true, _loc7_);
+                    this.lastAutoAbilityAttempt = time;
                 }
                 return;
             case 801:
             case 800:
             case 802:
                 if (this.necroHeal()) {
-                    this.lastAutoAbilityAttempt = param2;
+                    this.lastAutoAbilityAttempt = time;
                 }
                 return;
             case 804:
@@ -1482,8 +1549,8 @@ public class Player extends Character {
                         if (_loc3_.props_.isEnemy_ && this.getDistSquared(this.x_, this.y_, _loc3_.x_, _loc3_.y_) <= 225) {
                             _loc9_++;
                             if (_loc9_ > _loc8_) {
-                                this.useAltWeapon(this.x_, this.y_, 1, param2, true, _loc7_);
-                                this.lastAutoAbilityAttempt = param2;
+                                this.useAltWeapon(this.x_, this.y_, 1, time, true, _loc7_);
+                                this.lastAutoAbilityAttempt = time;
                                 return;
                             }
                         }
@@ -1498,11 +1565,11 @@ public class Player extends Character {
                     if (this.isUnstable) {
                         _loc4_ = new Vector3D(Math.random() - 0.5, Math.random() - 0.5);
                     } else {
-                        _loc4_ = this.calcAimAngle(_loc5_.speed, _loc5_.maxProjTravel_, new Vector3D(this.x_, this.y_), new Vector3D(_loc10_.x, _loc10_.y), true);
+                        _loc4_ = this.calcAimAngle(_loc5_.speed, _loc5_.maxProjTravel_, new Vector3D(this.x_, this.y_), new Vector3D(mousePos.x, mousePos.y), true);
                     }
                     if (_loc4_) {
-                        this.useAltWeapon(_loc4_.x, _loc4_.y, 1, param2, true, _loc7_);
-                        lastAutoAbilityAttempt = param2;
+                        this.useAltWeapon(_loc4_.x, _loc4_.y, 1, time, true, _loc7_);
+                        lastAutoAbilityAttempt = time;
                     }
                 }
                 return;
@@ -1510,22 +1577,22 @@ public class Player extends Character {
                 if (this.isUnstable) {
                     _loc4_ = null;
                 } else {
-                    _loc4_ = this.calcAimAngle(NaN, 7, new Vector3D(this.x_, this.y_), new Vector3D(_loc10_.x, _loc10_.y));
+                    _loc4_ = this.calcAimAngle(NaN, 7, new Vector3D(this.x_, this.y_), new Vector3D(mousePos.x, mousePos.y));
                 }
                 if (_loc4_) {
-                    this.useAltWeapon(_loc4_.x, _loc4_.y, 1, param2, true, _loc7_);
-                    lastAutoAbilityAttempt = param2;
+                    this.useAltWeapon(_loc4_.x, _loc4_.y, 1, time, true, _loc7_);
+                    lastAutoAbilityAttempt = time;
                 }
                 return;
             case 782:
                 if (this.isUnstable) {
                     _loc4_ = null;
                 } else {
-                    _loc4_ = this.calcAimAngle(NaN, 12, new Vector3D(this.x_, this.y_), new Vector3D(_loc10_.x, _loc10_.y));
+                    _loc4_ = this.calcAimAngle(NaN, 12, new Vector3D(this.x_, this.y_), new Vector3D(mousePos.x, mousePos.y));
                 }
                 if (_loc4_) {
-                    this.useAltWeapon(_loc4_.x, _loc4_.y, 1, param2, true, _loc7_);
-                    lastAutoAbilityAttempt = param2;
+                    this.useAltWeapon(_loc4_.x, _loc4_.y, 1, time, true, _loc7_);
+                    lastAutoAbilityAttempt = time;
                 }
                 return;
             case 803:
@@ -1533,22 +1600,22 @@ public class Player extends Character {
                     _loc4_ = new Vector3D(Math.random() - 0.5, Math.random() - 0.5);
                 } else if (Parameters.data.mysticAAShootGroup) {
                     if (this.necroHeal()) {
-                        this.lastAutoAbilityAttempt = param2;
+                        this.lastAutoAbilityAttempt = time;
                     }
                 } else {
-                    this.useAltWeapon(this.x_, this.y_, 1, param2, true, _loc7_);
-                    lastAutoAbilityAttempt = param2;
+                    this.useAltWeapon(this.x_, this.y_, 1, time, true, _loc7_);
+                    lastAutoAbilityAttempt = time;
                 }
                 return;
             case 785:
                 if (this.isUnstable) {
                     _loc4_ = null;
                 } else {
-                    _loc4_ = this.calcAimAngle(NaN, getWakiRange(param1), new Vector3D(this.x_, this.y_), new Vector3D(_loc10_.x, _loc10_.y));
+                    _loc4_ = this.calcAimAngle(NaN, getWakiRange(param1), new Vector3D(this.x_, this.y_), new Vector3D(mousePos.x, mousePos.y));
                 }
                 if (_loc4_) {
-                    this.useAltWeapon(_loc4_.x, _loc4_.y, 1, param2, true, _loc7_);
-                    lastAutoAbilityAttempt = param2;
+                    this.useAltWeapon(_loc4_.x, _loc4_.y, 1, time, true, _loc7_);
+                    lastAutoAbilityAttempt = time;
                 }
                 return;
             default:
@@ -3013,7 +3080,7 @@ public class Player extends Character {
     }
 
     private function shoot(param1:Number, param2:int = -1, param3:Boolean = false):void {
-        if (map_ == null || this.isStunned_() || this.isInCombat_() || this.isPetrified_()) {
+        if (map_ == null || this.isStunned_() || this.isPetrified_()) {
             return;
         }
         var _loc5_:int = equipment_[0];
@@ -3069,9 +3136,9 @@ public class Player extends Character {
             }
             _loc18_ = FreeList.newObject(Projectile) as Projectile;
             if (param5 && this.projectileIdSetOverrideNew != "") {
-                _loc18_.reset(param2, 0, objectId_, _loc12_, _loc9_, param1, this.projectileIdSetOverrideNew, this.projectileIdSetOverrideOld, _loc11_, _loc16_);
+                _loc18_.reset(param2, 0, objectId_, _loc12_, _loc9_, param1, objectId_, this.projectileIdSetOverrideNew, this.projectileIdSetOverrideOld, _loc11_, _loc16_);
             } else {
-                _loc18_.reset(param2, 0, objectId_, _loc12_, _loc9_, param1, "", "", _loc11_, _loc16_);
+                _loc18_.reset(param2, 0, objectId_, _loc12_, _loc9_, param1, objectId_, "", "", _loc11_, _loc16_);
             }
             _loc8_ = _loc18_.projProps.minDamage_;
             _loc20_ = _loc18_.projProps.maxDamage_;

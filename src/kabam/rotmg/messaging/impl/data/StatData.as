@@ -114,7 +114,7 @@ public class StatData {
     public static const EXALTED_HEALTH:int = 111;
     public static const EXALTED_MANA:int = 112;
     public static const EXALTATION_BONUS_DAMAGE:int = 113;
-    public static const PET_OWNER_ACCOUNT_ID:int = 114;
+    public static const PROJECTILE_OWNER_ID:int = 114;
     public static const GRAVE_ACCOUNT_ID:int = 115;
     public static const QUICKSLOT_ITEM_1:int = 116;
     public static const QUICKSLOT_ITEM_2:int = 117;

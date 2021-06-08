@@ -1,6 +1,4 @@
 package kabam.rotmg.core.service {
-import com.company.util.MoreObjectUtil;
-
 import kabam.lib.tasks.BaseTask;
 import kabam.rotmg.account.core.Account;
 import kabam.rotmg.appengine.api.AppEngineClient;
@@ -31,13 +29,13 @@ public class PurchaseCharacterClassTask extends BaseTask {
     }
 
     public function makeRequestPacket():Object {
-        var _loc1_:* = {};
+        var _loc1_:Object = {};
         _loc1_.game_net_user_id = this.account.gameNetworkUserId();
         _loc1_.game_net = this.account.gameNetwork();
         _loc1_.play_platform = this.account.playPlatform();
         _loc1_.do_login = true;
         _loc1_.classType = this.classType;
-        MoreObjectUtil.addToObject(_loc1_, this.account.getAccessToken());
+        _loc1_.accessToken = this.account.getAccessToken();
         return _loc1_;
     }
 

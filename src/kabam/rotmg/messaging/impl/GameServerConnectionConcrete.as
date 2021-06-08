@@ -74,6 +74,7 @@ import flash.geom.Point;
 import flash.net.FileReference;
 import flash.utils.ByteArray;
 import flash.utils.Timer;
+import flash.utils.setTimeout;
 
 import io.decagames.rotmg.characterMetrics.tracker.CharactersMetricsTracker;
 import io.decagames.rotmg.classes.NewClassUnlockSignal;
@@ -126,6 +127,7 @@ import kabam.rotmg.messaging.impl.data.ObjectData;
 import kabam.rotmg.messaging.impl.data.ObjectStatusData;
 import kabam.rotmg.messaging.impl.data.SlotObjectData;
 import kabam.rotmg.messaging.impl.data.StatData;
+import kabam.rotmg.messaging.impl.data.WorldPosData;
 import kabam.rotmg.messaging.impl.incoming.AccountList;
 import kabam.rotmg.messaging.impl.incoming.AllyShoot;
 import kabam.rotmg.messaging.impl.incoming.Aoe;
@@ -195,6 +197,7 @@ import kabam.rotmg.messaging.impl.outgoing.CheckCredits;
 import kabam.rotmg.messaging.impl.outgoing.ChooseName;
 import kabam.rotmg.messaging.impl.outgoing.Create;
 import kabam.rotmg.messaging.impl.outgoing.CreateGuild;
+import kabam.rotmg.messaging.impl.outgoing.CreepMoveMessage;
 import kabam.rotmg.messaging.impl.outgoing.EditAccountList;
 import kabam.rotmg.messaging.impl.outgoing.EnemyHit;
 import kabam.rotmg.messaging.impl.outgoing.Escape;
@@ -410,6 +413,18 @@ public class GameServerConnectionConcrete extends GameServerConnection {
         }
     }
 
+    override public function moveCreep(x:int, y:int, objId:int, hold:Boolean) : void {
+        var pos:WorldPosData = new WorldPosData();
+        pos.x_ = x;
+        pos.y_ = y;
+
+        var move:CreepMoveMessage = this.messages.require(CREEP_MOVE_MESSAGE) as CreepMoveMessage;
+        move.hold = hold;
+        move.objId = objId;
+        move.pos = pos;
+        serverConnection.sendMessage(move);
+    }
+
     override public function playerShoot(param1:int, param2:Projectile):void {
         var _loc3_:PlayerShoot = this.messages.require(30) as PlayerShoot;
         _loc3_.time_ = param1;
@@ -431,14 +446,15 @@ public class GameServerConnectionConcrete extends GameServerConnection {
         serverConnection.sendMessage(_loc3_);
     }
 
-    override public function enemyHit(param1:int, param2:int, param3:int,
-                                      param4:Boolean, ownerId:int, containerType:int):void {
-        var pkt:EnemyHit = this.messages.require(25) as EnemyHit;
-        pkt.time_ = param1;
-        pkt.bulletId_ = param2;
-        pkt.targetId_ = param3;
-        pkt.kill_ = param4;
+    override public function enemyHit(time:int, bulletId:int, targetId:int,
+                                      kill:Boolean, ownerId:int, projectileOwnerId:int):void {
+        var pkt:EnemyHit = this.messages.require(ENEMYHIT) as EnemyHit;
+        pkt.time_ = time;
+        pkt.bulletId_ = bulletId;
+        pkt.targetId_ = targetId;
+        pkt.kill_ = kill;
         pkt.ownerId = ownerId;
+        pkt.projectileOwnerId = projectileOwnerId;
         serverConnection.sendMessage(pkt);
     }
 
@@ -873,6 +889,7 @@ public class GameServerConnectionConcrete extends GameServerConnection {
         map.map(FORGE_RESULT).toMessage(ForgeResult);
         map.map(CHANGE_ALLY_SHOOT).toMessage(ChangeAllyShoot);
         map.map(SHOOTACK_COUNTER).toMessage(ShootAckCounter);
+        map.map(CREEP_MOVE_MESSAGE).toMessage(CreepMoveMessage);
         map.map(EXALTATION_BONUS_CHANGED).toMessage(ExaltationBonusChanged).toMethod(this.onExaltationBonusChanged);
         map.map(FORGE_UNLOCKED_BLUEPRINTS).toMessage(ForgeUnlockedBlueprints).toMethod(this.onForgeUnlockedBlueprints);
         map.map(VAULT_CONTENT).toMessage(VaultContent).toMethod(this.onVaultContent);
@@ -1081,6 +1098,8 @@ public class GameServerConnectionConcrete extends GameServerConnection {
     }
 
     private function onQueuePosition(param1:QueueInformation):void {
+        this.addTextLine.dispatch(ChatMessage.make(Parameters.ERROR_CHAT_NAME,
+                "Server is full! Position: " + param1.currentPosition_ + "/" + param1.maxPosition_));
     }
 
     private function getPetUpdater():void {
@@ -1215,6 +1234,7 @@ public class GameServerConnectionConcrete extends GameServerConnection {
         map.unmap(QUEUE_CANCEL);
         map.unmap(CHANGE_ALLY_SHOOT);
         map.unmap(SHOOTACK_COUNTER);
+        map.unmap(CREEP_MOVE_MESSAGE);
     }
 
     private function encryptConnection():void {
@@ -1334,8 +1354,8 @@ public class GameServerConnectionConcrete extends GameServerConnection {
     }
 
     private function onServerPlayerShoot(p:ServerPlayerShoot):void {
-        var self:Boolean = p.ownerId_ == this.playerId_;
         var go:GameObject = gs_.map.goDict_[p.ownerId_];
+        var self:Boolean = p.ownerId_ == this.playerId_ || p.projectileOwnerId == this.playerId_;
 
         if (go == null || go.dead_) {
             if (self)
@@ -1344,11 +1364,14 @@ public class GameServerConnectionConcrete extends GameServerConnection {
             return;
         }
 
-        if (go.objectId_ != this.playerId_)
+        if (Parameters.data.disableAllyShoot == 1 && !self)
             return;
 
         if (self)
             this.shootAck(gs_.lastUpdate_);
+
+        if (p.projectileOwnerId != 0 && p.shotCount > 1 && !p.isMultiShotCreep)
+            p.shotCount = 1;
 
         var player:Player = go as Player;
 
@@ -1356,10 +1379,12 @@ public class GameServerConnectionConcrete extends GameServerConnection {
             var proj:Projectile = FreeList.newObject(Projectile) as Projectile;
 
             if (player)
-                proj.reset(p.containerType_, 0, p.ownerId_, p.bulletId_ + i, p.angle_ + p.angleIncRad * i, gs_.lastUpdate_,
+                proj.reset(p.containerType_, 0, p.ownerId_, p.bulletId_ + i,
+                        p.angle_ + p.angleInc * i, gs_.lastUpdate_, p.projectileOwnerId,
                         player.projectileIdSetOverrideNew, player.projectileIdSetOverrideOld);
             else
-                proj.reset(p.containerType_, 0, p.ownerId_, p.bulletId_ + i, p.angle_ + p.angleIncRad * i, gs_.lastUpdate_);
+                proj.reset(p.containerType_, 0, p.ownerId_, p.bulletId_ + i,
+                        p.angle_ + p.angleInc * i, gs_.lastUpdate_, p.projectileOwnerId);
 
             proj.setDamage(p.damage_);
             gs_.map.addObj(proj, p.startingPos_.x_, p.startingPos_.y_);
@@ -1370,6 +1395,9 @@ public class GameServerConnectionConcrete extends GameServerConnection {
     }
 
     private function onAllyShoot(param1:AllyShoot):void {
+        if (Parameters.data.disableAllyShoot == 1)
+            return;
+
         var _loc6_:Projectile = null;
         var _loc4_:Player = null;
         var _loc3_:* = NaN;
@@ -1389,9 +1417,12 @@ public class GameServerConnectionConcrete extends GameServerConnection {
                     _loc3_ = 1;
                     _loc2_ = 1;
                 }
-                _loc6_.reset(param1.containerType_, 0, param1.ownerId_, param1.bulletId_, param1.angle_, this.gs_.lastUpdate_, _loc4_.projectileIdSetOverrideNew, _loc4_.projectileIdSetOverrideOld, _loc3_, _loc2_);
+                _loc6_.reset(param1.containerType_, 0, param1.ownerId_, param1.bulletId_,
+                        param1.angle_, this.gs_.lastUpdate_, param1.ownerId_,
+                        _loc4_.projectileIdSetOverrideNew, _loc4_.projectileIdSetOverrideOld, _loc3_, _loc2_);
             } else {
-                _loc6_.reset(param1.containerType_, 0, param1.ownerId_, param1.bulletId_, param1.angle_, this.gs_.lastUpdate_);
+                _loc6_.reset(param1.containerType_, 0, param1.ownerId_, param1.bulletId_,
+                        param1.angle_, this.gs_.lastUpdate_, param1.ownerId_);
             }
             this.gs_.map.addObj(_loc6_, _loc5_.x_, _loc5_.y_);
         }
@@ -1440,7 +1471,8 @@ public class GameServerConnectionConcrete extends GameServerConnection {
         while (_loc6_ < param1.numShots_) {
             _loc4_ = FreeList.newObject(Projectile) as Projectile;
             _loc7_ = param1.angle_ + param1.angleInc_ * _loc6_;
-            _loc4_.reset(_loc3_.objectType_, param1.bulletType_, param1.ownerId_, (param1.bulletId_ + _loc6_) % 256, _loc7_, gs_.lastUpdate_, "", "", 1, 1, _loc2_, _loc5_);
+            _loc4_.reset(_loc3_.objectType_, param1.bulletType_, param1.ownerId_, (param1.bulletId_ + _loc6_) % 256, _loc7_, gs_.lastUpdate_, param1.ownerId_,
+                    "", "", 1, 1, _loc2_, _loc5_);
             _loc4_.setDamage(param1.damage_);
             gs_.map.addObj(_loc4_, param1.startingPos_.x_, param1.startingPos_.y_);
             _loc6_++;
@@ -1561,53 +1593,75 @@ public class GameServerConnectionConcrete extends GameServerConnection {
         gs_.map.calcVulnerables();
     }
 
-    private function onNotification(notif:Notification):void {
-        var _loc2_:LineBuilder = null;
-        if (notif.effect == Notification.OBJECT_STATUS_TEXT) {
-            var _loc3_:GameObject = this.gs_.map.goDict_[notif.objectId_];
-            if (_loc3_) {
-                _loc2_ = LineBuilder.fromJSON(notif.message);
-                if (Parameters.data.ignoreStatusText && _loc2_.key == "s.no_effect") {
-                    return;
-                }
-                var _loc4_:* = _loc2_.key;
-                switch (_loc4_) {
-                    case "s.plus_symbol":
-                        notif.message = "+" + _loc2_.tokens.amount;
-                        break;
-                    case "s.no_effect":
-                        notif.message = "No Effect";
-                        break;
-                    case "s.class_quest_complete":
-                        notif.message = "Class Quest Completed!";
-                        break;
-                    case "s.quest_complete":
-                        notif.message = "Quest Complete!";
-                        break;
-                    case "blank":
-                        notif.message = _loc2_.tokens.data;
-                }
-                if (_loc3_.objectId_ == this.player.objectId_) {
-                    if (notif.message == "Quest Complete!") {
-                        this.gs_.map.quest_.completed();
-                    } else if (_loc2_.key == "s.plus_symbol" && notif.color == 65280) {
-                        this.player.addHealth(_loc2_.tokens.amount);
+    private function onNotification(notif:Notification) : void {
+        switch (notif.effect) {
+            case Notification.OBJECT_STATUS_TEXT:
+                var go:GameObject = this.gs_.map.goDict_[notif.objectId_];
+                if (go) {
+                    var lb:LineBuilder = LineBuilder.fromJSON(notif.message);
+                    if (Parameters.data.ignoreStatusText && lb.key == "s.no_effect")
+                        return;
+
+                    var key:String = lb.key;
+                    switch (key) {
+                        case "s.plus_symbol":
+                            notif.message = "+" + lb.tokens.amount;
+                            break;
+                        case "s.no_effect":
+                            notif.message = "No Effect";
+                            break;
+                        case "s.class_quest_complete":
+                            notif.message = "Class Quest Completed!";
+                            break;
+                        case "s.quest_complete":
+                            notif.message = "Quest Complete!";
+                            break;
+                        case "blank":
+                            notif.message = lb.tokens.data;
                     }
-                    this.makeNotification(notif.message, _loc3_, notif.color, 1000);
-                } else if (_loc3_.props_.isEnemy_ || !Parameters.data.noAllyNotifications) {
-                    this.makeNotification(notif.message, _loc3_, notif.color, 1000);
+
+                    if (go.objectId_ == this.player.objectId_) {
+                        if (notif.message == "Quest Complete!")
+                            this.gs_.map.quest_.completed();
+                        else if (lb.key == "s.plus_symbol" && notif.color == 65280)
+                            this.player.addHealth(lb.tokens.amount);
+
+                        this.makeNotification(notif.message, go, notif.color, 1000);
+                    } else if (go.props_.isEnemy_ || !Parameters.data.noAllyNotifications)
+                        this.makeNotification(notif.message, go, notif.color, 1000);
                 }
-            }
-        } else {
-            if (notif.effect != Notification.UI_NOTIFICATION &&
-                    notif.effect != Notification.QUEUE) {
+                break;
+            case Notification.UI_NOTIFICATION:
+                this.uiNotification(notif.message);
+                break;
+            case Notification.QUEUE:
+                var go:GameObject = gs_.map.goDict_[notif.objectId_];
+                if (notif.position == -1) {
+                    this.addTextLine.dispatch(ChatMessage.make("", "You have left the queue"));
+                    break;
+                }
+
+                this.addTextLine.dispatch(ChatMessage.make("", "You are position " +
+                        notif.position + " in queue for " +
+                        (go ? go.name_.split(' ')[0] : "Unknown")));
+                break;
+            case Notification.DUNGEON:
+                this.addTextLine.dispatch(ChatMessage.make("",
+                        LineBuilder.getLocalizedStringFromJSON(notif.message, notif.pictureObjType)));
+                break;
+            case Notification.STAT_INCREASE:
+            case Notification.NO_DISAPPEAR:
+                this.addTextLine.dispatch(ChatMessage.make("", notif.message));
+                break;
+            default:
                 var msg:String = "";
                 if (notif.message.charAt(0) == "{")
-                    msg = LineBuilder.fromJSON(notif.message) ? LineBuilder.fromJSON(notif.message).getString() : "";
+                    msg = LineBuilder.getLocalizedStringFromJSON(notif.message);
                 else msg = notif.message;
                 if (msg != "")
-                    this.addTextLine.dispatch(ChatMessage.make("", msg));
-            }
+                    this.addTextLine.dispatch(ChatMessage.make(
+                            notif.effect == Notification.ERROR_MESSAGE ? Parameters.ERROR_CHAT_NAME : "", msg));
+                break;
         }
     }
 
@@ -1617,10 +1671,8 @@ public class GameServerConnectionConcrete extends GameServerConnection {
         gs_.map.mapOverlay_.addStatusText(_loc5_);
     }
 
-    private function onGlobalNotification(param1:GlobalNotification):void {
-        var _loc2_:* = param1.text;
-        var _loc3_:* = _loc2_;
-        switch (_loc3_) {
+    private function uiNotification(str:String) {
+        switch (str) {
             case "yellow":
                 ShowKeySignal.instance.dispatch(Key.YELLOW);
                 return;
@@ -1649,6 +1701,10 @@ public class GameServerConnectionConcrete extends GameServerConnection {
         }
     }
 
+    private function onGlobalNotification(param1:GlobalNotification):void {
+        uiNotification(param1.text);
+    }
+
     private function onNewTick(param1:NewTick):void {
         var _loc2_:int = 0;
         var _loc4_:Boolean = false;
@@ -1665,6 +1721,7 @@ public class GameServerConnectionConcrete extends GameServerConnection {
         }
         this.lastTickId_ = param1.tickId_;
         this.gs_.map.calcVulnerables();
+        this.gs_.map.player_.resolveSummonerTarget();
         if (Parameters.watchInv) {
             _loc2_ = 4;
             while (_loc2_ < 12) {
@@ -2349,7 +2406,40 @@ public class GameServerConnectionConcrete extends GameServerConnection {
                     continue;
                 case StatData.PLAYER_ID:
                 case StatData.GRAVE_ACCOUNT_ID:
-                    //case StatData.PET_OWNER_ACCOUNT_ID:
+                    continue;
+                case StatData.PROJECTILE_OWNER_ID:
+                    go.projectileOwnerId = statVal;
+                    var owner:Player = gs_.map.goDict_[statVal] as Player;
+                    var movable:Boolean = !player.isSummonUnmovable(go.objectType_);
+                    if (owner) {
+                        owner.creeps.push(go.objectId_);
+                        owner.creepMovable.push(movable);
+                    }
+
+                    if (statVal == gs_.map.player_.objectId_) {
+                        setTimeout(function (objId:int) : void {
+                            if (!gs_ || !gs_.map || !gs_.map.goDict_)
+                                return;
+
+                            var idx:int = gs_.map.player_.creeps.indexOf(objId);
+                            if (idx != -1) {
+                                gs_.map.player_.creeps.removeAt(idx);
+                                gs_.map.player_.creepMovable.removeAt(idx);
+                            }
+                        }, gs_.map.player_.resolveSummonLifetime(go.objectType_) - 200, go.objectId_);
+
+                        if (movable)
+                            switch (Parameters.data.autoSummCtrlMode) {
+                                case 0:
+                                    var pos:Point = owner.sToW(gs_.map.mouseX, gs_.map.mouseY);
+                                    moveCreep(pos.x, pos.y, go.objectId_, false);
+                                    break;
+                                case 1:
+                                case 2:
+                                    moveCreep(gs_.map.player_.x_, gs_.map.player_.y_, go.objectId_, false);
+                                    break;
+                            }
+                    }
                     continue;
                 case StatData.QUICKSLOT_ITEM_1:
                     var plr:Player = go as Player;
@@ -2917,7 +3007,7 @@ public class GameServerConnectionConcrete extends GameServerConnection {
     }
 
     private function handleServerFull(param1:Failure):void {
-        this.addTextLine.dispatch(ChatMessage.make("", param1.errorDescription_));
+        //this.addTextLine.dispatch(ChatMessage.make("", param1.errorDescription_));
         this.retryConnection_ = true;
         this.delayBeforeReconnect = 5;
         this.serverFull_ = true;

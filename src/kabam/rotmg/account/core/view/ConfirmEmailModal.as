@@ -2,7 +2,6 @@ package kabam.rotmg.account.core.view {
 import com.company.assembleegameclient.account.ui.Frame;
 import com.company.assembleegameclient.account.ui.TextInputField;
 import com.company.util.EmailValidator;
-import com.company.util.MoreObjectUtil;
 
 import flash.events.MouseEvent;
 import flash.filters.DropShadowFilter;
@@ -128,7 +127,7 @@ public class ConfirmEmailModal extends Frame {
             _loc2_ = StaticInjectorContext.getInjector().getInstance(AppEngineClient);
             _loc2_.complete.addOnce(this.onComplete);
             _loc3_ = {"newGuid": this.emailInput.text()};
-            MoreObjectUtil.addToObject(_loc3_, this.account.getAccessToken());
+            _loc3_.accessToken = this.account.getAccessToken();
             _loc2_.sendRequest("account/changeEmail", _loc3_);
             rightButton_.removeEventListener("click", this.onVerify);
         }

@@ -1,6 +1,4 @@
 package kabam.rotmg.account.securityQuestions.tasks {
-import com.company.util.MoreObjectUtil;
-
 import kabam.lib.tasks.BaseTask;
 import kabam.rotmg.account.core.Account;
 import kabam.rotmg.account.securityQuestions.data.SecurityQuestionsData;
@@ -26,7 +24,7 @@ public class SaveSecurityQuestionsTask extends BaseTask {
     private function makeDataPacket():Object {
         var _loc1_:* = {};
         _loc1_.answers = this.data.answers.join("|");
-        MoreObjectUtil.addToObject(_loc1_, this.account.getAccessToken());
+        _loc1_.accessToken = this.account.getAccessToken();
         return _loc1_;
     }
 

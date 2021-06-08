@@ -43,7 +43,8 @@ public class PetsTabContentView extends Sprite {
 
     private function onUpdate():void {
         this.updatePetBitmap();
-        this.petRarityTextField.setStringBuilder(new LineBuilder().setParams(this.petVO.rarity.rarityKey));
+        if (this.petVO.rarity)
+            this.petRarityTextField.setStringBuilder(new LineBuilder().setParams(this.petVO.rarity.rarityKey));
     }
 
     private function updatePetBitmap():void {

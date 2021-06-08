@@ -36,7 +36,7 @@ public class FriendDataRequestTask extends BaseTask implements ISocialTask {
     override protected function startTask():void {
         this.client.setMaxRetries(8);
         this.client.complete.addOnce(this.onComplete);
-        var _loc1_:Object = [];
+        var _loc1_:Object = {};
         _loc1_.targetName = "";
         _loc1_.accessToken = this.account.getAccessToken();
         _loc1_.game_net_user_id = this.account.gameNetworkUserId();

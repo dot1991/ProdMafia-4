@@ -1,4 +1,6 @@
 package com.company.assembleegameclient.game {
+import com.company.assembleegameclient.map.Square;
+import com.company.assembleegameclient.objects.GameObject;
 import com.company.assembleegameclient.objects.ObjectLibrary;
 import com.company.assembleegameclient.objects.Player;
 import com.company.assembleegameclient.parameters.Parameters;
@@ -11,6 +13,7 @@ import flash.events.Event;
 import flash.events.KeyboardEvent;
 import flash.events.MouseEvent;
 import flash.geom.Matrix3D;
+import flash.geom.Point;
 import flash.geom.Vector3D;
 import flash.system.Capabilities;
 
@@ -121,6 +124,7 @@ public class MapUserInput {
     private var moveRight_:Boolean = false;
     private var moveUp_:Boolean = false;
     private var moveDown_:Boolean = false;
+    private var summCtrl:Boolean = false;
     private var isWalking:Boolean = false;
     private var rotateLeft_:Boolean = false;
     private var rotateRight_:Boolean = false;
@@ -436,27 +440,85 @@ public class MapUserInput {
 
     private function onEnterFrame(param1:Event):void {
         var _loc2_:Number = NaN;
-        var _loc3_:Player = this.gs.map.player_;
-        if (_loc3_) {
-            _loc3_.mousePos_.x = this.gs.map.mouseX;
-            _loc3_.mousePos_.y = this.gs.map.mouseY;
+        var player:Player = this.gs.map.player_;
+        var i:int = 0;
+        var go:GameObject;
+        var jump:Boolean;
+        if (player) {
+            player.mousePos_.x = this.gs.map.mouseX;
+            player.mousePos_.y = this.gs.map.mouseY;
+            if (this.summCtrl)
+                for (i = 0; i < player.creeps.length; i++) {
+                    if (!player.creepMovable[i])
+                        continue;
+
+                    var pos:Point = player.sToW(this.gs.map.mouseX, this.gs.map.mouseY);
+                    var square:Square = this.gs.map.lookupSquare(pos.x, pos.y);
+                    if (square && square.isWalkable())
+                        this.gs.gsc_.moveCreep(pos.x, pos.y, player.creeps[i], true);
+                }
+            else switch (Parameters.data.autoSummCtrlMode) {
+                case 1:
+                    for (i = 0; i < player.creeps.length; i++) {
+                        if (player == null || !player.creepMovable[i])
+                            continue;
+
+                        go = this.gs.map.goDict_[player.creeps[i]];
+                        if (!go) {
+                            if (player.square.isWalkable() && player.creepMovable[i])
+                                this.gs.gsc_.moveCreep(player.x_, player.y_, player.creeps[i], false);
+                            continue;
+                        }
+
+                        jump = PointUtil.distanceSquaredXY(go.x_, go.y_, player.x_, player.y_) > 5*5;
+                        if (player.square && player.square.isWalkable())
+                            this.gs.gsc_.moveCreep(player.x_, player.y_, player.creeps[i], !jump);
+                    }
+                    break;
+                case 2:
+                    for (i = 0; i < player.creeps.length; i++) {
+                        if (!player.creepMovable[i])
+                            continue;
+
+                        go = this.gs.map.goDict_[player.creeps[i]];
+
+                        if (!go || !player.summonerTarget || !player.summonerTarget.square ||
+                                PointUtil.distanceSquaredXY(go.x_, go.y_, player.x_, player.y_) > 14*14) {
+                            if (player.square.isWalkable())
+                                this.gs.gsc_.moveCreep(player.x_, player.y_, player.creeps[i], false);
+                            continue;
+                        }
+
+                        if (PointUtil.distanceSquaredXY(player.x_, player.y_,
+                                player.summonerTarget.x_, player.summonerTarget.y_) > 14*14 ||
+                                PointUtil.distanceSquaredXY(go.x_, go.y_,
+                                        player.summonerTarget.x_, player.summonerTarget.y_) < 0.5*0.5)
+                            continue;
+
+                        jump = PointUtil.distanceSquaredXY(go.x_, go.y_, player.summonerTarget.x_, player.summonerTarget.y_) > 5*5;
+                        if (player.summonerTarget.square.isWalkable())
+                            this.gs.gsc_.moveCreep(player.summonerTarget.x_, player.summonerTarget.y_, player.creeps[i], !jump);
+                    }
+                    break;
+            }
+
             if (this.enablePlayerInput_) {
                 if (this.mouseDown_) {
-                    if (!_loc3_.isUnstable) {
+                    if (!player.isUnstable) {
                         _loc2_ = Math.atan2(this.gs.map.mouseY, this.gs.map.mouseX);
-                        _loc3_.attemptAttackAngle(_loc2_);
-                        _loc3_.attemptAutoAbility(_loc2_);
+                        player.attemptAttackAngle(_loc2_);
+                        player.attemptAutoAbility(_loc2_);
                     } else {
                         _loc2_ = Math.random() * 6.28318530717959;
-                        _loc3_.attemptAttackAngle(_loc2_);
-                        _loc3_.attemptAutoAbility(_loc2_);
+                        player.attemptAttackAngle(_loc2_);
+                        player.attemptAutoAbility(_loc2_);
                     }
                 } else if (Parameters.data.AAOn || this.autofire_ || Parameters.data.AutoAbilityOn) {
-                    if (!_loc3_.isUnstable) {
+                    if (!player.isUnstable) {
                         _loc2_ = Math.atan2(this.gs.map.mouseY, this.gs.map.mouseX);
-                        _loc3_.attemptAutoAim(_loc2_);
+                        player.attemptAutoAim(_loc2_);
                     } else {
-                        _loc3_.attemptAutoAim(Math.random() * 6.28318530717959);
+                        player.attemptAutoAim(Math.random() * 6.28318530717959);
                     }
                 }
             }
@@ -516,6 +578,17 @@ public class MapUserInput {
             case Parameters.data.moveRight:
                 this.moveRight_ = true;
                 this.setPlayerMovement();
+                return;
+            case Parameters.data.summCtrl:
+                this.summCtrl = true;
+                var player:Player = gs.map.player_;
+                for (var i:int = 0; i < player.creeps.length; i++) {
+                    if (!player.creepMovable[i])
+                        continue;
+
+                    var pos:Point = player.sToW(this.gs.map.mouseX, this.gs.map.mouseY);
+                    this.gs.gsc_.moveCreep(pos.x, pos.y, i, false);
+                }
                 return;
             default:
                 if (_loc16_ == Parameters.data.rotateLeft) {
@@ -832,6 +905,17 @@ public class MapUserInput {
                 break;
             case Parameters.data.moveRight:
                 this.moveRight_ = false;
+                break;
+            case Parameters.data.summCtrl:
+                this.summCtrl = false;
+                var player:Player = gs.map.player_;
+                for (var i:int = 0; i < player.creeps.length; i++) {
+                    if (!player.creepMovable[i])
+                        continue;
+
+                    var pos:Point = player.sToW(this.gs.map.mouseX, this.gs.map.mouseY);
+                    this.gs.gsc_.moveCreep(pos.x, pos.y, i, false);
+                }
                 break;
             case Parameters.data.rotateLeft:
                 this.rotateLeft_ = false;

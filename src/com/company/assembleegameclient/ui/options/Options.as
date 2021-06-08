@@ -197,7 +197,7 @@ public class Options extends Sprite {
     }
 
     private static function makeAllyShootLabels():Vector.<StringBuilder> {
-        return new <StringBuilder>[new StaticStringBuilder("All"), new StaticStringBuilder("Off")];
+        return new <StringBuilder>[new StaticStringBuilder("Off"), new StaticStringBuilder("All")];
     }
 
     private static function makeHpBarLabels():Vector.<StringBuilder> {
@@ -327,6 +327,7 @@ public class Options extends Sprite {
         this.addOptionAndPosition(new ChoiceOption("aaDistance", this.aaDistanceValues(), [0, 0.5, 1, 1.5, 2, 2.5, 3], "AutoAim Distance Increase", "Adds additional range to AutoAim\'s range", null));
         this.addOptionAndPosition(new ChoiceOption("BossPriority", makeOnOffLabels(), [true, false], "Boss Priority", "Makes AutoAim prioritize Boss enemies over everything else - \"bosses\" includes all Quests and certain dungeon bosses which are not quests, such as the Shatters bosses", null));
         this.addOptionAndPosition(new ChoiceOption("spamPrismNumber", this.skullTargetsValues(), [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], "Spam Trickster Prism", "Uses non teleporting Trickster prisms when this many enemies are around, with auto ability enabled", null));
+        this.addOptionAndPosition(new ChoiceOption("autoSummCtrlMode", this.autoSummCtrlValues(), [0, 1, 2], "Auto Summon Control", "Selects the mode at which the summons should automatically behave", null));
     }
 
     public function addAutoLootOptions():void {
@@ -403,7 +404,8 @@ public class Options extends Sprite {
         this.addOptionAndPosition(new ChoiceOption("hidePets2", makePetHiddenLabels(), [0, 1, 2], "Hide Pets", "Make other players or all players pets hidden", null));
         this.addOptionAndPosition(new ChoiceOption("lootPreview", makeOnOffLabels(), [true, false], "Loot Preview", "Shows previews of equipment over bags", null));
         this.addOptionAndPosition(new ChoiceOption("showDamageOnEnemy", makeOnOffLabels(), [true, false], "Show Dealt %", "Shows the % of damage you\'ve done to an enemy, below that enemy (note, only counts projectile damage, it does not include damage from poison, trap, scepter, etc)", null));
-        this.addOptionAndPosition(new ChoiceOption("showMobInfo", makeOnOffLabels(), [true, false], "Show Mob Info", "Shows the object itemType above mobs", this.onShowMobInfo));
+        this.addOptionAndPosition(new ChoiceOption("showMobInfo", makeOnOffLabels(), [true, false], "Show Mob Info", "Shows the object type above mobs", this.onInfoChange));
+        this.addOptionAndPosition(new ChoiceOption("debugMode", makeOnOffLabels(), [true, false], "Debug Mode", "Shows the object type and object id above all entities", this.onInfoChange));
         this.addOptionAndPosition(new ChoiceOption("liteMonitor", makeOnOffLabels(), [true, false], "Lite Stats Monitor", "Replaces the Net Jitter stats monitor with a \"lite\" one that also measures ping", null));
         this.addOptionAndPosition(new ChoiceOption("showClientStat", makeOnOffLabels(), [true, false], "Show ClientStat", "Output when you get a ClientStat packet, which shows when things like TilesSeen, GodsKilled, DungeonsCompleted, etc changes", null));
         this.addOptionAndPosition(new ChoiceOption("liteParticle", makeOnOffLabels(), [true, false], "Reduced Particles", "Shows only Bombs/Poisons/Traps/Vents", null));
@@ -430,10 +432,9 @@ public class Options extends Sprite {
         this.gs_.hudView.statMeters.init();
     }
 
-    public function onShowMobInfo():void {
-        if (!Parameters.data.showMobInfo && this.gs_.map.mapOverlay_) {
+    public function onInfoChange() : void {
+        if ((!Parameters.data.showMobInfo && !Parameters.data.debugMode) && this.gs_.map.mapOverlay_)
             this.gs_.map.mapOverlay_.removeChildren(0);
-        }
     }
 
     public function addOtherOptions():void {
@@ -674,6 +675,10 @@ public class Options extends Sprite {
         return new <StringBuilder>[new StaticStringBuilder("Off"), new StaticStringBuilder("1"), new StaticStringBuilder("2"), new StaticStringBuilder("3"), new StaticStringBuilder("4"), new StaticStringBuilder("5"), new StaticStringBuilder("6"), new StaticStringBuilder("7"), new StaticStringBuilder("8"), new StaticStringBuilder("9"), new StaticStringBuilder("10")];
     }
 
+    private function autoSummCtrlValues():Vector.<StringBuilder> {
+        return new <StringBuilder>[new StaticStringBuilder("Off"), new StaticStringBuilder("Player"), new StaticStringBuilder("Mobs")];
+    }
+
     private function makeFameTpCdLabels():Vector.<StringBuilder> {
         return new <StringBuilder>[new StaticStringBuilder("1000"), new StaticStringBuilder("2000"), new StaticStringBuilder("3000"), new StaticStringBuilder("4000"), new StaticStringBuilder("5000"), new StaticStringBuilder("6000"), new StaticStringBuilder("7000"), new StaticStringBuilder("8000"), new StaticStringBuilder("9000"), new StaticStringBuilder("10000")];
     }
@@ -737,6 +742,7 @@ public class Options extends Sprite {
         this.addOptionAndPosition(new KeyMapper("togglePerformanceStats", "Options.TogglePerformanceStats", "Options.TogglePerformanceStatsDesc"));
         this.addOptionAndPosition(new KeyMapper("toggleCentering", "Options.ToggleCentering", "Options.ToggleCenteringDesc"));
         this.addOptionAndPosition(new KeyMapper("interact", "Options.InteractOrBuy", "Options.InteractOrBuyDesc"));
+        this.addOptionAndPosition(new KeyMapper("summCtrl", "Summon Control", "The key which allows you to control your summons"));
     }
 
     private function makeAllowCameraRotation():ChoiceOption {

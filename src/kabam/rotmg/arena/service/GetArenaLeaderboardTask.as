@@ -1,6 +1,4 @@
 package kabam.rotmg.arena.service {
-import com.company.util.MoreObjectUtil;
-
 import kabam.lib.tasks.BaseTask;
 import kabam.rotmg.account.core.Account;
 import kabam.rotmg.appengine.api.AppEngineClient;
@@ -43,7 +41,7 @@ public class GetArenaLeaderboardTask extends BaseTask {
 
     private function makeRequestObject():Object {
         var _loc1_:Object = {"type": this.filter.getKey()};
-        MoreObjectUtil.addToObject(_loc1_, this.account.getAccessToken());
+        _loc1_.accessToken = this.account.getAccessToken();
         return _loc1_;
     }
 }

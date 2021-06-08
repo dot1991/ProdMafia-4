@@ -1,6 +1,4 @@
 package com.company.assembleegameclient.account.ui {
-import com.company.util.MoreObjectUtil;
-
 import kabam.rotmg.account.core.Account;
 import kabam.rotmg.appengine.api.AppEngineClient;
 import kabam.rotmg.core.model.PlayerModel;
@@ -52,7 +50,7 @@ public class NewChooseNameFrameMediator extends Mediator {
 
     private function sendNameToServer():void {
         var _loc1_:Object = {"name": this.name};
-        MoreObjectUtil.addToObject(_loc1_, this.account.getAccessToken());
+        _loc1_.accessToken = this.account.getAccessToken();
         this.client.complete.addOnce(this.onComplete);
         this.client.sendRequest("/account/setName", _loc1_);
         this.view.disable();

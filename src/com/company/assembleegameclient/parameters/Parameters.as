@@ -54,7 +54,8 @@ public class Parameters {
         "rea!mkings.xyz", "buyrotmg.c", "lifepot. org", "rotmgmax.me", "rotmgmax,me",
         "rotmgmax me", "oryx.ln", "rpgstash com", "rwtmg", "rotmg.io", "jasonprimate",
         "rotmgmax", "realmpower", "reaimpower", "oryxjackpot,com", "realmstock.com",
-        "reaimstock.com", "rpgstash,c0m", "rotmg,network", "reaimdupe.com", "re/\\lmsh0p , inf0"];
+        "reaimstock.com", "rpgstash,c0m", "rotmg,network", "reaimdupe.com", "re/\\lmsh0p , inf0",
+        "realmbags,net", "rotmg.org"];
 
     public static const defaultExclusions:Vector.<int> = new Vector.<int>(0);
     public static const defaultInclusions:Vector.<int> = new <int>[600, 601, 602, 603, 2295, 2296, 2297, 2298, 2524, 2525, 2526, 2527, 8608, 8609, 8610, 8611, 8615, 8617, 8616, 8618, 8962, 9017, 9015, 9016, 9055, 9054, 9052, 9053, 9059, 9058, 9056, 9057, 9063, 9062, 9060, 9061, 32697, 32698, 32699, 32700, 3004, 3005, 3006, 3007, 3088, 3100, 3096, 3091, 3113, 3114, 3112, 3111, 3032, 3033, 3034, 3035, 3177, 3266];
@@ -101,7 +102,6 @@ public class Parameters {
     public static var VHS:int = 0;
     public static var VHSRecordLength:int = -1;
     public static var VHSIndex:int = -1;
-    public static var abi:Boolean = true;
     public static var keyHolders:String;
     public static var needToRecalcDesireables:Boolean = false;
     public static var needsMapCheck:int = 0;
@@ -176,7 +176,8 @@ public class Parameters {
             "rotmgstore", "nv9p4r", "v4sfdb", "wgajrj", "4hzb5", "realmrwt", "rotmgcheap",
             "realmgen", "reaimgen", "guills", "rwtrealm", "rwtgang", "rea1mgen", "rwtking",
             "discordgg", "discordio", "discordcom", "realmstock", "r883q5c", "oryxjackpot",
-            "reaimstock", "r0tmg", "rpgstash", "rotmg,network", "reaimdupe", "re/\\lmsh0p"];
+            "reaimstock", "r0tmg", "rpgstash", "rotmg,network", "reaimdupe", "re/\\lmsh0p",
+            "rotmg.org", "realmbags,net"];
         var _loc15_:int = 0;
         var _loc14_:* = _loc8_;
         for each(var _loc11_ in _loc8_) {
@@ -519,7 +520,7 @@ public class Parameters {
         setDefaultKey("chat", 13);
         setDefaultKey("chatCommand", 191);
         setDefaultKey("tell", 9);
-        setDefaultKey("guildChat", 71);
+        setDefaultKey("guildChat", KeyCodes.UNSET);
         setDefaultKey("toggleFullscreen", 0);
         setDefaultKey("quickSlotKey1", KeyCodes.F);
         setDefaultKey("quickSlotKey2", KeyCodes.V);
@@ -791,6 +792,9 @@ public class Parameters {
         setDefault("tutorialMode", false);
         setDefault("lifeMul", 1.0);
         setDefault("speedMul", 1.0);
+        setDefault("summCtrl", KeyCodes.G);
+        setDefault("autoSummCtrlMode", 0);
+        setDefault("debugMode", false);
         generateClientToken();
     }
 

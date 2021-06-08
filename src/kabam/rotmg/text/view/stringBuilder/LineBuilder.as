@@ -1,13 +1,22 @@
 package kabam.rotmg.text.view.stringBuilder {
+import com.company.assembleegameclient.objects.ObjectLibrary;
+
 import kabam.rotmg.core.StaticInjectorContext;
 import kabam.rotmg.language.model.StringMap;
 
 public class LineBuilder implements StringBuilder {
+    public static function fromJSON(text:String , dungeonId:int = -1) : LineBuilder {
+        text = text.replace("\",}}", "\"}}");
+        var json:Object;
+        try {
+            json = JSON.parse(text);
+        } catch (e:Error) {
+            return new LineBuilder().setParams(text);
+        }
 
-    public static function fromJSON(param1:String):LineBuilder {
-        param1 = param1.replace("\",}}", "\"}}");
-        var _loc2_:Object = JSON.parse(param1);
-        return new LineBuilder().setParams(_loc2_.k, _loc2_.t);
+        if (dungeonId != -1)
+            json.t["dungeon"] = ObjectLibrary.xmlLibrary_[dungeonId].@id.toString().replace(" Portal", "");
+        return new LineBuilder().setParams(json.k, json.t);
     }
 
     public static function getLocalizedStringFromKey(param1:String, param2:Object = null):String {
@@ -18,16 +27,18 @@ public class LineBuilder implements StringBuilder {
         return _loc4_.getString() == "" ? param1 : _loc4_.getString();
     }
 
-    public static function getLocalizedStringFromJSON(param1:String):String {
+    public static function getLocalizedStringFromJSON(text:String, dungeonId:int = -1):String {
         var _loc2_:* = null;
         var _loc3_:* = null;
-        if (param1.charAt(0) == "{") {
-            _loc2_ = LineBuilder.fromJSON(param1);
-            _loc3_ = StaticInjectorContext.getInjector().getInstance(StringMap);
-            _loc2_.setStringMap(_loc3_);
-            return _loc2_.getString();
-        }
-        return param1;
+        if (text.charAt(0) != "{")
+            text = "{" + text + "}";
+
+        _loc2_ = LineBuilder.fromJSON(text, dungeonId);
+        _loc3_ = StaticInjectorContext.getInjector().getInstance(StringMap);
+        _loc2_.setStringMap(_loc3_);
+        return _loc2_.getString();
+
+        return text;
     }
 
     public static function returnStringReplace(param1:String, param2:Object = null, param3:String = "", param4:String = ""):String {
